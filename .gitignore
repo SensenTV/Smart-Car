@@ -1,0 +1,16 @@
+# Node-RED
+node-red/node_modules/
+node-red/lib/flows_*
+node-red/.config.*
+node-red/package.json
+node-red/settings.js
+
+# Zertifikate / Mosquitto
+mosquitto/certs/*.key
+mosquitto/certs/*.crt
+
+# Logs, temporär
+*.log
+*.tmp
+
+data/grafana/plugins/*
