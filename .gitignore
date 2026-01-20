@@ -14,3 +14,5 @@ mosquitto/certs/*.crt
 *.tmp
 
 data/grafana/plugins/*
+
+data/grafana/grafana.db
