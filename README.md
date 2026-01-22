@@ -33,3 +33,7 @@ Node Red
 Grafana
 InfluxDB
 SqliteDB
+
+#InfluxDB Query:
+
+docker exec -it influxdb sh
