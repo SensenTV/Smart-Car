@@ -7,8 +7,8 @@ Hash: SHA512
   "signedByOrg": "grafana",
   "signedByOrgName": "Grafana Labs",
   "plugin": "grafana-pyroscope-app",
-  "version": "1.15.0",
-  "time": 1768897555844,
+  "version": "1.15.1",
+  "time": 1769162582730,
   "keyId": "7e4d0c6a708866e7",
   "files": {
     "776.js.map": "580dd49cd9e3151fd22732e58691f8825fe5689434fc0db4e9c3f1f1dab8e4ac",
@@ -28,11 +28,11 @@ Hash: SHA512
     "549.js.map": "fdb6be4c98043a8e62b4dfdc391276a0b5a0ecdc24d55b67411ad98901d939b8",
     "980.js.map": "7478ab619c046be0bddf96c52a7ccd9f507a01a10fb84c81c16890925e99dc0e",
     "644.js": "1dc2fb5c0509b886e6bba040d5c52251163fd71fdbcc992f909266ea8fdc70a7",
-    "CHANGELOG.md": "1bc1b0dea924a760409a23cdcdf564983ee6d31d56f09331afcfdafe69a5f957",
+    "CHANGELOG.md": "9707faaf5567ec5a879485dab62c09c66965fe1dc1b5879850a4e5de6957d883",
     "697.js": "356a01c2a91b758283313032f09707341653e870e6bb24c3c5bb6220e85a88e0",
     "190.js": "990938ae56d7e3d9be11428104d777c06b2a7bba9956fad618ffc50e87e65c0c",
     "shared/infrastructure/profile-metrics/profile-metrics.json": "2989d3bedd209ccae3f822934be696b9579a539a3254374e4b97ecceee4a7bb9",
-    "plugin.json": "fb19efdf812be017eddc5a275bf19c0ceb4954a267ace1934efeffa07fb3e64e",
+    "plugin.json": "25892bd85e2cd12e1eb76eef72b95897bbd5421c00d01c16e8071f1d41697537",
     "156.js": "75dbcebba547ff25740065666c71fff2c12dcafe605a485f691b0e74970782bf",
     "2.js": "435bf201bcd20b11e8966db042c20f8162ec7fe45003821347d6cf0d8a197079",
     "876.js.map": "0312a655b83d1d5a83df99bec6df25d6953a9a8e8a536ffcb5b5d85e72e0d846",
@@ -89,11 +89,11 @@ Hash: SHA512
 }
 -----BEGIN PGP SIGNATURE-----
 
-wsA9BAETCgBtBYJpbzwTCRB+TQxqcIhm50UUAAAAAAAcACBzYWx0QG5vdGF0
-aW9ucy5vcGVucGdwanMub3JnSwgvxPHECwlQ1k/7diw61yDcKxkoKVAEjAHc
-ooLb6IIWIQTzOyW2kQdOhGNlcPN+TQxqcIhm5wAAWsoCB1sNuwxKaouTQxKQ
-o4+oD8Q24h0RPvwZNKecn1Db63vmC6TOnfXvU3dcZO7hH7ZpsjJE3vBJq7eE
-tIC4zPU70zOlAgdHri9z21JDdgjxFEuOUMoxjzk+Ro8ZhsTBvKROcQsCtFt9
-NbTOUoLmbzrIs4O9/EYgbgRd7qeyguI04a10FZ4r5A==
-=L9CA
+wsA/BAETCgBtBYJpc0dWCRB+TQxqcIhm50UUAAAAAAAcACBzYWx0QG5vdGF0
+aW9ucy5vcGVucGdwanMub3JndsDy5CpuVYVKUDaPJ4EnwfeYVYg/YI1LVQtf
+238SAkMWIQTzOyW2kQdOhGNlcPN+TQxqcIhm5wAA2/gCCQEZ8iKrMpho1wrv
+e0ysUBmNjz+A66TqqhSnHkh6u7QPkW+Tb+hA4BAjkuZ943KlPX8upMg1Pc9R
+7Xq3Tf5/96AM7gIJAfTLIYyt6aq1mVBkgYR/DpR564zcdS6p3VTCxILkwznf
+CiIuRyz8+TFRGVUIfc3+1kQkyxKgX5CFjRhO9Jemv/3P
+=jnf5
 -----END PGP SIGNATURE-----

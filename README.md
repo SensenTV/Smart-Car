@@ -37,3 +37,6 @@ SqliteDB
 #InfluxDB Query:
 
 docker exec -it influxdb sh
+
+mosquitto starten:
+net start mosquitto
