@@ -4,6 +4,7 @@ services:
   influxdb:
     image: influxdb:2
     container_name: influxdb
+    restart: unless-stopped
     ports:
       - "8086:8086"
     volumes:
@@ -15,27 +16,55 @@ services:
       - DOCKER_INFLUXDB_INIT_ORG=vehicle_org
       - DOCKER_INFLUXDB_INIT_BUCKET=vehicle_data
       - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=vehicle-admin-token
+      - TZ=Europe/Berlin
+    networks:
+      - smartcar-network
+    healthcheck:
+      test: ["CMD", "influx", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 1G
 
   grafana:
     image: grafana/grafana
     container_name: grafana
+    restart: unless-stopped
     ports:
       - "3001:3000"
     volumes:
       - ./data/grafana:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
     environment:
-      - GF_INSTALL_PLUGINS=grafana-googlesheets-datasource,grafana-worldmap-panel
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3001
+      - GF_INSTALL_PLUGINS=grafana-googlesheets-datasource
+      - GF_DATE_FORMATS_DEFAULT_TIMEZONE=Europe/Berlin
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/etc/grafana/provisioning/dashboards/main-dashboard.json
+      - TZ=Europe/Berlin
     depends_on:
-      - influxdb
+      influxdb:
+        condition: service_healthy
     networks:
       - smartcar-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
   mosquitto:
     image: eclipse-mosquitto:latest
     container_name: mosquitto
+    restart: unless-stopped
     ports:
       - "1883:1883"
       - "8883:8883"
@@ -46,27 +75,45 @@ services:
     networks:
       - smartcar-network
     user: "1883:1883"
+    environment:
+      - TZ=Europe/Berlin
     healthcheck:
-      test: ["CMD", "mosquitto_sub", "-p", "1883", "-t", "$SYS/#", "-C", "1", "-i", "healthcheck", "-W", "1"]
-      interval: 10s
-      timeout: 5s
+      test: ["CMD-SHELL", "mosquitto_sub -p 1883 -t '$$SYS/#' -C 1 -i healthcheck -W 3 || exit 1"]
+      interval: 30s
+      timeout: 10s
       retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 128M
 
   node-red:
     image: nodered/node-red
     container_name: node-red
+    restart: unless-stopped
     ports:
       - "1880:1880"
     volumes:
       - ./node-red:/data
       - ./mosquitto/config/certs/ca.crt:/data/ca.crt:ro
     depends_on:
-      - influxdb
-      - mosquitto
+      mosquitto:
+        condition: service_healthy
     networks:
       - smartcar-network
     environment:
       - TZ=Europe/Berlin
+      - NODE_RED_CREDENTIAL_SECRET=smartcar-secret-key
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:1880/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
 
 networks:
   smartcar-network:
