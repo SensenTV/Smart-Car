@@ -18,7 +18,7 @@ Token: vehicle-admin-token
 
 Grafana
 User: admin
-Passwort: admin/IoT_Smart_CarWS25/26
+Passwort: IoT_Smart_CarWS25/26
 
 Locale Websiten:
 

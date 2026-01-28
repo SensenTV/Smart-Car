@@ -37,8 +37,8 @@
                 "path": "img/table.png"
             }
         ],
-        "version": "1.0.33",
-        "updated": "2026-01-06",
+        "version": "1.0.34",
+        "updated": "2026-01-26",
         "links": [
             {
                 "name": "Github",
@@ -115,11 +115,6 @@
                 "id": "grafana-lokiexplore-app/embedded-logs-exploration/v1",
                 "title": "Embedded Logs Exploration",
                 "description": "A component that renders a logs exploration view that can be embedded in other parts of Grafana."
-            }
-        ],
-        "extensionPoints": [
-            {
-                "id": "grafana-lokiexplore-app/investigation/v1"
             }
         ]
     },

@@ -1,0 +1,4 @@
+Client-ID:
+1014178004365-lrqfv4nrl5anpfk5dkh1u3pbidjtqg3p.apps.googleusercontent.com
+Clientschlüssel:
+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

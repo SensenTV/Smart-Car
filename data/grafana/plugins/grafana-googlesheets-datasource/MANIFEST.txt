@@ -1,0 +1,41 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+{
+  "manifestVersion": "2.0.0",
+  "signatureType": "grafana",
+  "signedByOrg": "grafana",
+  "signedByOrgName": "Grafana Labs",
+  "plugin": "grafana-googlesheets-datasource",
+  "version": "2.3.0",
+  "time": 1767691420750,
+  "keyId": "7e4d0c6a708866e7",
+  "files": {
+    "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+    "gpx_sheets_linux_amd64": "d44cec11a7544247669ba706bf25b230b9b2b259a378968fd44de2909f0a3d94",
+    "module.js": "dba769935a05a6ecf25848143c5cc81b81446fd73b5fc9b1407d5b05db8b6e0e",
+    "CHANGELOG.md": "b94b58c7d7251dcc13f859193f05c85b2d79ec05fa21b715ab2f55f9a6c94e25",
+    "plugin.json": "4a0259b0da2bce957fa84eabb797f33962528b90f33f36bdb88755f9296e5906",
+    "module.js.map": "dcd090ff00f229cc5278e3f87000d1df50ef89e4c2c36989d8aa1c8cc0983887",
+    "module.js.LICENSE.txt": "78d27c81cf67f4817c9d6d5df6c23d9e2b87b2d6338cdcf9bea5f1f5481648f7",
+    "README.md": "12e606f6616f1a05c3d27abbd2afc371c14cffe2d48e4a86279da0614e439024",
+    "go_plugin_build_manifest": "b0dc007f5141ad940c4464953810f39e9a9285473c10ef5a964d49883e8e0452",
+    "img/table.png": "e8278e0ea8da1f7ad097cbf00d7732e76cd32ae0cf99565c37deea525e08df28",
+    "img/query-editor.png": "f1e6f096ac968142e746a3844fec343255c25d5314d76f90b9476d6c1edad32c",
+    "img/spreadsheet.png": "430cdb2480801cede184c94ac3cf0e10f29814840ee6b254b9f8108d5561ce5f",
+    "img/graph.png": "e265eea7c7535202b91376c963493029860975ccad086efdfaee7cd8008dbace",
+    "img/dashboard.png": "dbff0318b2eda2cab278a48f5c596e470129ea2a673b0910c6449286826138ca",
+    "img/sheets.svg": "def5332889972ca9b45635121574dc710b0ef7c82baaa70b2478f79eda0b6699",
+    "img/config-page.png": "8853ab483094720cc2a34fd2c31abb4cef16b9e6b461fa2f1271e98ad9371ee9"
+  }
+}
+-----BEGIN PGP SIGNATURE-----
+
+wsA9BAETCgBtBYJpXNScCRB+TQxqcIhm50UUAAAAAAAcACBzYWx0QG5vdGF0
+aW9ucy5vcGVucGdwanMub3JnAKWbUKtpUMckyg/GrGgYROJGdi7Vffh+yyMw
+vqLMTb0WIQTzOyW2kQdOhGNlcPN+TQxqcIhm5wAAKhUCCLta7JHyl6r2njdv
+e85wT5OOQY7zW71wrzndhTsoRQrao5C/7yoOGXMZ99Gq0r5eObic9lRPRVPN
+FkGFoqdkPBFdAgd5C86nFjKmlh0dscuwOenH9c2mecwM1ZNXQfbDdDs+vvQP
+LNyWV5sv9HwzRn550y47RjwAn2VaOnyyX5EWkAVBoA==
+=hULA
+-----END PGP SIGNATURE-----

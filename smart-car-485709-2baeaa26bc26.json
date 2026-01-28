@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "smart-car-485709",
+  "private_key_id": "2baeaa26bc261fb9635c162622d486ad8f85765c",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQCpL5ethvqnpLDk\nNT5dn3r1SidwvMT1S9nSO9tQZWU33Q+frfHIVbwyPQHjQ5iLcpsXtb8pjR9SBHF/\nkOBhzCl8o2QUEB9XQLiDqe7m2JxY0liNQaAe9+4a+t8M38gflkQKHEhtlnxXqJaA\nCxFm48gk3TQFH3IUADIsH+r39B9Z9BjevWpfhhsKARX8DBdIixkNOIn3/aT15+YB\n8YQJILe1yhCyihdJa3tg51xjaFBCAUpyf/OJShBEItcyghK6layh2lj1DEb3Bjab\nJCRlIMCFoIFf4qUPiHbaNEZXegvFXs7FqAAndPwhlrBo2j7JbamsIIfkWAqbZ7+P\nugWqc2aPAgMBAAECggEABRzblBJiq8NF1zemsVSa9iOuCnGh8BnBNOG7MHRH+Ua0\nbKpohpnUrJ38Wx5VU01801waMUrC+gsJVQYPSdVOIaacZSDRmaTqjowJnK9KFkMR\nCv/DM3xhlS4kpHJ0zUOQvc95/tnP2yRMnAT5mybiCv8mTctT+rfAzGWQh7q4YdL6\naQo76O58JuEkX8ven7BYKzFFyjdKO31Rojx0P7bqHOZ+OrY5GRys8OmpJMK5t1ah\ndJZn8/3Lnco9b6Jqx1FMkjSjmg3MxRqYfJK9d9p+JYKz0iP+zbIzBln4phO1kNFS\nyyImkzoMJsYx5QdhlFLWLpE4BmE77HzAvVEs5p02TQKBgQDseACgGojlOJpAb8FE\nv0jkjYQARzQqs9cm3H2Wjx6TKCSKghGxIXbL5oJtHaZsOQndWbJhQ8AYlrce09/H\nendDb+kMnNqKVyqcIkfq2j0cgCHwOJnt6V1jSVFy0KgT41oKd9D4Cz6nYIu5J6rc\nTX+DYx5MvNKOawu61d+CozTJ3QKBgQC3KO6w6b6zvCo+MTJnDHZAMS/rSJfInkk3\nrKXS9NliK3WuXOCbf0zmFEP3S/qTC5JOf6XBAzJAHeVTLNK2kh/Y4Bf40UJemZsn\ny+F0WAfE2mfWx8jR0QzNDEP3IbE/Oyhto//JTjhZsGNbqTQ3zT7vv/Dl9YdigIrp\nHrAFizRpWwKBgQC67Mmhxhf9Ctd0pGLk00jt0qhMB/1G3E7xW06zm4MR1KO+Eb+m\ng8uCtz7Wvp914UjY/zSxCntpdIphBh9ZcoegeXCCFePzg6AdOEQddFLmmqs5V6Tm\nmpjGCYkm96ZFwmzE5Z381fa7HOiWfrLj3yczV0D2bDUNe7UUBkje3eC2yQKBgQCc\nPDc3A3wfVs9104NZ8YBhC1QD0B1hDNwJuKSOiTtxCP9OJ32URody7zB2nwH0Mnev\nrCTYuoA/vwCh7WckQwsVdTodjWqexUpbLQd4taqS2Xaf+DUt/LN9qQvEn6HQ/QZk\nV/NVZPqeTt7CDlgzjUk1OzYjAkhk1p8ncXzWjcK8ZwKBgQDBaIq5ILzyW6rV4pDZ\na4qQC/feBGqX6DCm0awkPGKqFMz79yusZVJZ7fAeUzn9j05TruTO13SIVFdpqp03\nKDiLR5VxS7lqvJfDVHoo2Py8AHcOZfNxr3K7/UK8xb1EKUu5oNmm/xpKNUSsrqKt\nSww9b6ueXmOV+7Lg6RkXoEaUDA==\n-----END PRIVATE KEY-----\n",
+  "client_email": "inhaber-smart-car@smart-car-485709.iam.gserviceaccount.com",
+  "client_id": "113955048048524812551",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/inhaber-smart-car%40smart-car-485709.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

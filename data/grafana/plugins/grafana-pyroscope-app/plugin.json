@@ -40,8 +40,8 @@
                 "path": "img/hero-image.png"
             }
         ],
-        "version": "1.15.1",
-        "updated": "2026-01-23",
+        "version": "1.16.0",
+        "updated": "2026-01-28",
         "links": [
             {
                 "name": "GitHub",
@@ -88,5 +88,18 @@
             }
         ]
     },
+    "routes": [
+        {
+            "path": "/grafanacom-api/instances",
+            "method": "GET",
+            "url": "{{.SecureJsonData.gcomApiUrl}}/instances/{{.SecureJsonData.stackId}}",
+            "headers": [
+                {
+                    "name": "Authorization",
+                    "content": "Bearer {{.SecureJsonData.gcomApiToken}}"
+                }
+            ]
+        }
+    ],
     "buildMode": "production"
 }

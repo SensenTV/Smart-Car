@@ -289,3 +289,256 @@
 1769344531: Received DISCONNECT from healthcheck
 1769344531: Client healthcheck disconnected.
 1769344533: mosquitto version 2.0.22 terminating
+1769344576: mosquitto version 2.0.22 starting
+1769344576: Config loaded from /mosquitto/config/mosquitto.conf.
+1769344576: Opening ipv4 listen socket on port 1883.
+1769344576: Opening ipv6 listen socket on port 1883.
+1769344576: Opening ipv4 listen socket on port 8883.
+1769344576: Opening ipv6 listen socket on port 8883.
+1769344576: mosquitto version 2.0.22 running
+1769344579: New connection from 172.18.0.4:45560 on port 8883.
+1769344579: New client connected from 172.18.0.4:45560 as nodered435c5fbf0519b411 (p2, c1, k60).
+1769344579: No will message specified.
+1769344579: Sending CONNACK to nodered435c5fbf0519b411 (0, 0)
+1769344579: Received SUBSCRIBE from nodered435c5fbf0519b411
+1769344579: 	smartcar/# (QoS 2)
+1769344579: nodered435c5fbf0519b411 2 smartcar/#
+1769344579: Sending SUBACK to nodered435c5fbf0519b411
+1769344586: New connection from ::1:56750 on port 1883.
+1769344586: New client connected from ::1:56750 as healthcheck (p2, c1, k60).
+1769344586: No will message specified.
+1769344586: Sending CONNACK to healthcheck (0, 0)
+1769344586: Received SUBSCRIBE from healthcheck
+1769344586: 	/# (QoS 0)
+1769344586: healthcheck 0 /#
+1769344586: Sending SUBACK to healthcheck
+1769344587: Received DISCONNECT from healthcheck
+1769344587: Client healthcheck disconnected.
+1769344597: New connection from ::1:56092 on port 1883.
+1769344597: New client connected from ::1:56092 as healthcheck (p2, c1, k60).
+1769344597: No will message specified.
+1769344597: Sending CONNACK to healthcheck (0, 0)
+1769344597: Received SUBSCRIBE from healthcheck
+1769344597: 	/# (QoS 0)
+1769344597: healthcheck 0 /#
+1769344597: Sending SUBACK to healthcheck
+1769344598: Received DISCONNECT from healthcheck
+1769344598: Client healthcheck disconnected.
+1769344608: New connection from ::1:33624 on port 1883.
+1769344608: New client connected from ::1:33624 as healthcheck (p2, c1, k60).
+1769344608: No will message specified.
+1769344608: Sending CONNACK to healthcheck (0, 0)
+1769344608: Received SUBSCRIBE from healthcheck
+1769344608: 	/# (QoS 0)
+1769344608: healthcheck 0 /#
+1769344608: Sending SUBACK to healthcheck
+1769344609: Received DISCONNECT from healthcheck
+1769344609: Client healthcheck disconnected.
+1769344619: New connection from ::1:36998 on port 1883.
+1769344619: New client connected from ::1:36998 as healthcheck (p2, c1, k60).
+1769344619: No will message specified.
+1769344619: Sending CONNACK to healthcheck (0, 0)
+1769344619: Received SUBSCRIBE from healthcheck
+1769344619: 	/# (QoS 0)
+1769344619: healthcheck 0 /#
+1769344619: Sending SUBACK to healthcheck
+1769344620: Received DISCONNECT from healthcheck
+1769344620: Client healthcheck disconnected.
+1769344630: New connection from ::1:40556 on port 1883.
+1769344630: New client connected from ::1:40556 as healthcheck (p2, c1, k60).
+1769344630: No will message specified.
+1769344630: Sending CONNACK to healthcheck (0, 0)
+1769344630: Received SUBSCRIBE from healthcheck
+1769344630: 	/# (QoS 0)
+1769344630: healthcheck 0 /#
+1769344630: Sending SUBACK to healthcheck
+1769344631: Received DISCONNECT from healthcheck
+1769344631: Client healthcheck disconnected.
+1769344639: Received PINGREQ from nodered435c5fbf0519b411
+1769344639: Sending PINGRESP to nodered435c5fbf0519b411
+1769344641: New connection from ::1:41326 on port 1883.
+1769344641: New client connected from ::1:41326 as healthcheck (p2, c1, k60).
+1769344641: No will message specified.
+1769344641: Sending CONNACK to healthcheck (0, 0)
+1769344641: Received SUBSCRIBE from healthcheck
+1769344641: 	/# (QoS 0)
+1769344641: healthcheck 0 /#
+1769344641: Sending SUBACK to healthcheck
+1769344642: Received DISCONNECT from healthcheck
+1769344642: Client healthcheck disconnected.
+1769344652: New connection from ::1:36946 on port 1883.
+1769344652: New client connected from ::1:36946 as healthcheck (p2, c1, k60).
+1769344652: No will message specified.
+1769344652: Sending CONNACK to healthcheck (0, 0)
+1769344652: Received SUBSCRIBE from healthcheck
+1769344652: 	/# (QoS 0)
+1769344652: healthcheck 0 /#
+1769344652: Sending SUBACK to healthcheck
+1769344653: Received DISCONNECT from healthcheck
+1769344653: Client healthcheck disconnected.
+1769344663: New connection from ::1:56480 on port 1883.
+1769344663: New client connected from ::1:56480 as healthcheck (p2, c1, k60).
+1769344663: No will message specified.
+1769344663: Sending CONNACK to healthcheck (0, 0)
+1769344663: Received SUBSCRIBE from healthcheck
+1769344663: 	/# (QoS 0)
+1769344663: healthcheck 0 /#
+1769344663: Sending SUBACK to healthcheck
+1769344664: Received DISCONNECT from healthcheck
+1769344664: Client healthcheck disconnected.
+1769344674: New connection from ::1:45504 on port 1883.
+1769344674: New client connected from ::1:45504 as healthcheck (p2, c1, k60).
+1769344674: No will message specified.
+1769344674: Sending CONNACK to healthcheck (0, 0)
+1769344674: Received SUBSCRIBE from healthcheck
+1769344674: 	/# (QoS 0)
+1769344674: healthcheck 0 /#
+1769344674: Sending SUBACK to healthcheck
+1769344675: Received DISCONNECT from healthcheck
+1769344675: Client healthcheck disconnected.
+1769344686: New connection from ::1:39240 on port 1883.
+1769344686: New client connected from ::1:39240 as healthcheck (p2, c1, k60).
+1769344686: No will message specified.
+1769344686: Sending CONNACK to healthcheck (0, 0)
+1769344686: Received SUBSCRIBE from healthcheck
+1769344686: 	/# (QoS 0)
+1769344686: healthcheck 0 /#
+1769344686: Sending SUBACK to healthcheck
+1769344687: Received DISCONNECT from healthcheck
+1769344687: Client healthcheck disconnected.
+1769344697: New connection from ::1:41060 on port 1883.
+1769344697: New client connected from ::1:41060 as healthcheck (p2, c1, k60).
+1769344697: No will message specified.
+1769344697: Sending CONNACK to healthcheck (0, 0)
+1769344697: Received SUBSCRIBE from healthcheck
+1769344697: 	/# (QoS 0)
+1769344697: healthcheck 0 /#
+1769344697: Sending SUBACK to healthcheck
+1769344698: Received DISCONNECT from healthcheck
+1769344698: Client healthcheck disconnected.
+1769344699: Received PINGREQ from nodered435c5fbf0519b411
+1769344699: Sending PINGRESP to nodered435c5fbf0519b411
+1769344708: New connection from ::1:42044 on port 1883.
+1769344708: New client connected from ::1:42044 as healthcheck (p2, c1, k60).
+1769344708: No will message specified.
+1769344708: Sending CONNACK to healthcheck (0, 0)
+1769344708: Received SUBSCRIBE from healthcheck
+1769344708: 	/# (QoS 0)
+1769344708: healthcheck 0 /#
+1769344708: Sending SUBACK to healthcheck
+1769344709: Received DISCONNECT from healthcheck
+1769344709: Client healthcheck disconnected.
+1769344719: New connection from ::1:60952 on port 1883.
+1769344719: New client connected from ::1:60952 as healthcheck (p2, c1, k60).
+1769344719: No will message specified.
+1769344719: Sending CONNACK to healthcheck (0, 0)
+1769344719: Received SUBSCRIBE from healthcheck
+1769344719: 	/# (QoS 0)
+1769344719: healthcheck 0 /#
+1769344719: Sending SUBACK to healthcheck
+1769344720: Received DISCONNECT from healthcheck
+1769344720: Client healthcheck disconnected.
+1769344730: New connection from ::1:50056 on port 1883.
+1769344730: New client connected from ::1:50056 as healthcheck (p2, c1, k60).
+1769344730: No will message specified.
+1769344730: Sending CONNACK to healthcheck (0, 0)
+1769344730: Received SUBSCRIBE from healthcheck
+1769344730: 	/# (QoS 0)
+1769344730: healthcheck 0 /#
+1769344730: Sending SUBACK to healthcheck
+1769344731: Received DISCONNECT from healthcheck
+1769344731: Client healthcheck disconnected.
+1769344741: New connection from ::1:38734 on port 1883.
+1769344741: New client connected from ::1:38734 as healthcheck (p2, c1, k60).
+1769344741: No will message specified.
+1769344741: Sending CONNACK to healthcheck (0, 0)
+1769344741: Received SUBSCRIBE from healthcheck
+1769344741: 	/# (QoS 0)
+1769344741: healthcheck 0 /#
+1769344741: Sending SUBACK to healthcheck
+1769344742: Received DISCONNECT from healthcheck
+1769344742: Client healthcheck disconnected.
+1769344752: New connection from ::1:55834 on port 1883.
+1769344752: New client connected from ::1:55834 as healthcheck (p2, c1, k60).
+1769344752: No will message specified.
+1769344752: Sending CONNACK to healthcheck (0, 0)
+1769344752: Received SUBSCRIBE from healthcheck
+1769344752: 	/# (QoS 0)
+1769344752: healthcheck 0 /#
+1769344752: Sending SUBACK to healthcheck
+1769344753: Received DISCONNECT from healthcheck
+1769344753: Client healthcheck disconnected.
+1769344759: Received PINGREQ from nodered435c5fbf0519b411
+1769344759: Sending PINGRESP to nodered435c5fbf0519b411
+1769344763: New connection from ::1:52468 on port 1883.
+1769344763: New client connected from ::1:52468 as healthcheck (p2, c1, k60).
+1769344763: No will message specified.
+1769344763: Sending CONNACK to healthcheck (0, 0)
+1769344763: Received SUBSCRIBE from healthcheck
+1769344763: 	/# (QoS 0)
+1769344763: healthcheck 0 /#
+1769344763: Sending SUBACK to healthcheck
+1769344764: Received DISCONNECT from healthcheck
+1769344764: Client healthcheck disconnected.
+1769344774: New connection from ::1:49402 on port 1883.
+1769344774: New client connected from ::1:49402 as healthcheck (p2, c1, k60).
+1769344774: No will message specified.
+1769344774: Sending CONNACK to healthcheck (0, 0)
+1769344774: Received SUBSCRIBE from healthcheck
+1769344774: 	/# (QoS 0)
+1769344774: healthcheck 0 /#
+1769344774: Sending SUBACK to healthcheck
+1769344775: Received DISCONNECT from healthcheck
+1769344775: Client healthcheck disconnected.
+1769344786: New connection from ::1:56128 on port 1883.
+1769344786: New client connected from ::1:56128 as healthcheck (p2, c1, k60).
+1769344786: No will message specified.
+1769344786: Sending CONNACK to healthcheck (0, 0)
+1769344786: Received SUBSCRIBE from healthcheck
+1769344786: 	/# (QoS 0)
+1769344786: healthcheck 0 /#
+1769344786: Sending SUBACK to healthcheck
+1769344787: Received DISCONNECT from healthcheck
+1769344787: Client healthcheck disconnected.
+1769344797: New connection from ::1:53548 on port 1883.
+1769344797: New client connected from ::1:53548 as healthcheck (p2, c1, k60).
+1769344797: No will message specified.
+1769344797: Sending CONNACK to healthcheck (0, 0)
+1769344797: Received SUBSCRIBE from healthcheck
+1769344797: 	/# (QoS 0)
+1769344797: healthcheck 0 /#
+1769344797: Sending SUBACK to healthcheck
+1769344798: Received DISCONNECT from healthcheck
+1769344798: Client healthcheck disconnected.
+1769344808: New connection from ::1:35848 on port 1883.
+1769344808: New client connected from ::1:35848 as healthcheck (p2, c1, k60).
+1769344808: No will message specified.
+1769344808: Sending CONNACK to healthcheck (0, 0)
+1769344808: Received SUBSCRIBE from healthcheck
+1769344808: 	/# (QoS 0)
+1769344808: healthcheck 0 /#
+1769344808: Sending SUBACK to healthcheck
+1769344809: Received DISCONNECT from healthcheck
+1769344809: Client healthcheck disconnected.
+1769344818: Received PINGREQ from nodered435c5fbf0519b411
+1769344818: Sending PINGRESP to nodered435c5fbf0519b411
+1769344819: New connection from ::1:51954 on port 1883.
+1769344819: New client connected from ::1:51954 as healthcheck (p2, c1, k60).
+1769344819: No will message specified.
+1769344819: Sending CONNACK to healthcheck (0, 0)
+1769344819: Received SUBSCRIBE from healthcheck
+1769344819: 	/# (QoS 0)
+1769344819: healthcheck 0 /#
+1769344819: Sending SUBACK to healthcheck
+1769344820: Received DISCONNECT from healthcheck
+1769344820: Client healthcheck disconnected.
+1769344830: New connection from ::1:37858 on port 1883.
+1769344830: New client connected from ::1:37858 as healthcheck (p2, c1, k60).
+1769344830: No will message specified.
+1769344830: Sending CONNACK to healthcheck (0, 0)
+1769344830: Received SUBSCRIBE from healthcheck
+1769344830: 	/# (QoS 0)
+1769344830: healthcheck 0 /#
+1769344830: Sending SUBACK to healthcheck
+1769344831: Received DISCONNECT from healthcheck
+1769344831: Client healthcheck disconnected.
