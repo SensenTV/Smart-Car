@@ -401,6 +401,7 @@ docker exec -it influxdb influx query 'from(bucket:"vehicle_data") |> range(star
 |------|-------|--------|
 | **SensenTV** | Entwickler | [@SensenTV](https://github.com/SensenTV) |
 | **VellGmbH** | Entwickler | [@VellGmbH](https://github.com/VellGmbH) |
+| **Baris** | Entwickler | [@baris2602](https://github.com/baris2602) |
 
 ---
 
