@@ -1,0 +1,14 @@
+state,TEST001,driving,45.2,12.6
+gps,TEST001,52.5201,13.4049,63
+state,TEST002,idle,38.5,13.1
+gps,TEST002,52.5195,13.4022,0
+trip,TEST001,TRIP1001,1800,3.4,2.8,3.9
+error,TEST002,E042,1
+alert,TEST001,low_battery,Battery below 20 percent
+state,TEST003,charging,25.0,14.0
+gps,TEST003,52.5178,13.4105,12
+trip,TEST003,TRIP2002,5400,7.8,3.1,4.5
+error,TEST003,E099,0
+alert,TEST002,engine,Engine temperature high
+state,TEST001,parked,41.7,12.9
+gps,TEST001,52.5210,13.4060,0

@@ -317,7 +317,7 @@ Beispiel: `alert,CAR001,fuel_low,Kraftstoff_unter_10L`
 | Feld | Wert |
 |------|------|
 | Benutzer | `admin` |
-| Passwort | `admin` |
+| Passwort | `admin` | IoT_Smart_CarWS25/26 |
 
 ### MQTT (Mosquitto)
 | Port | Verwendung |

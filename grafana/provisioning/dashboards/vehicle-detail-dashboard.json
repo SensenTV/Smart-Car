@@ -3,7 +3,10 @@
     "list": [
       {
         "builtIn": 1,
-        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
         "enable": true,
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
@@ -15,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
-  "id": null,
+  "id": 2,
   "links": [
     {
       "asDropdown": false,
@@ -31,303 +34,1172 @@
   "panels": [
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
       "id": 100,
       "panels": [],
       "title": "Aktueller Status - $vehicle_id",
       "type": "row"
     },
     {
-      "datasource": { "type": "influxdb", "uid": "influxdb" },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb"
+      },
       "fieldConfig": {
         "defaults": {
           "mappings": [
-            { "options": { "idle": { "color": "blue", "index": 0, "text": "Idle" } }, "type": "value" },
-            { "options": { "driving": { "color": "green", "index": 1, "text": "Fahrend" } }, "type": "value" },
-            { "options": { "charging": { "color": "yellow", "index": 2, "text": "Laden" } }, "type": "value" },
-            { "options": { "parked": { "color": "purple", "index": 3, "text": "Geparkt" } }, "type": "value" },
-            { "options": { "error": { "color": "red", "index": 4, "text": "Fehler" } }, "type": "value" }
+            {
+              "options": {
+                "idle": {
+                  "color": "blue",
+                  "index": 0,
+                  "text": "Idle"
+                }
+              },
+              "type": "value"
+            },
+            {
+              "options": {
+                "driving": {
+                  "color": "green",
+                  "index": 1,
+                  "text": "Fahrend"
+                }
+              },
+              "type": "value"
+            },
+            {
+              "options": {
+                "charging": {
+                  "color": "yellow",
+                  "index": 2,
+                  "text": "Laden"
+                }
+              },
+              "type": "value"
+            },
+            {
+              "options": {
+                "parked": {
+                  "color": "purple",
+                  "index": 3,
+                  "text": "Geparkt"
+                }
+              },
+              "type": "value"
+            },
+            {
+              "options": {
+                "error": {
+                  "color": "red",
+                  "index": 4,
+                  "text": "Fehler"
+                }
+              },
+              "type": "value"
+            }
           ],
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 1
+      },
       "id": 1,
-      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "/^state$/", "values": false }, "textMode": "value" },
-      "title": "Status",
-      "type": "stat",
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^state$/",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.3.1",
       "targets": [
         {
-          "datasource": { "type": "influxdb", "uid": "influxdb" },
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb"
+          },
           "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r._measurement == \"vehicle_state\")\n  |> filter(fn: (r) => r.vehicle_id == \"${vehicle_id}\")\n  |> pivot(rowKey:[\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> last(column: \"_time\")\n  |> keep(columns: [\"state\"])",
           "refId": "A"
         }
-      ]
+      ],
+      "title": "Status",
+      "type": "stat"
     },
     {
-      "datasource": { "type": "influxdb", "uid": "influxdb" },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
+          "color": {
+            "mode": "thresholds"
+          },
           "mappings": [],
           "max": 60,
           "min": 0,
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "orange", "value": 10 }, { "color": "green", "value": 20 }] },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "orange",
+                "value": 10
+              },
+              {
+                "color": "green",
+                "value": 20
+              }
+            ]
+          },
           "unit": "litre"
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 1
+      },
       "id": 2,
-      "options": { "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "showThresholdLabels": false, "showThresholdMarkers": true },
-      "title": "Kraftstoff",
-      "type": "gauge",
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto"
+      },
+      "pluginVersion": "12.3.1",
       "targets": [
         {
-          "datasource": { "type": "influxdb", "uid": "influxdb" },
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb"
+          },
           "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r._measurement == \"vehicle_state\")\n  |> filter(fn: (r) => r.vehicle_id == \"${vehicle_id}\")\n  |> filter(fn: (r) => r._field == \"fuel_l\")\n  |> last()",
           "refId": "A"
         }
-      ]
+      ],
+      "title": "Kraftstoff",
+      "type": "gauge"
     },
     {
-      "datasource": { "type": "influxdb", "uid": "influxdb" },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
+          "color": {
+            "mode": "thresholds"
+          },
           "mappings": [],
           "max": 14,
           "min": 10,
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "orange", "value": 11.5 }, { "color": "green", "value": 12.2 }] },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "orange",
+                "value": 11.5
+              },
+              {
+                "color": "green",
+                "value": 12.2
+              }
+            ]
+          },
           "unit": "volt"
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 1
+      },
       "id": 3,
-      "options": { "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "showThresholdLabels": false, "showThresholdMarkers": true },
-      "title": "Batterie",
-      "type": "gauge",
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto"
+      },
+      "pluginVersion": "12.3.1",
       "targets": [
         {
-          "datasource": { "type": "influxdb", "uid": "influxdb" },
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb"
+          },
           "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r._measurement == \"vehicle_state\")\n  |> filter(fn: (r) => r.vehicle_id == \"${vehicle_id}\")\n  |> filter(fn: (r) => r._field == \"battery_v\")\n  |> last()",
           "refId": "A"
         }
-      ]
+      ],
+      "title": "Batterie",
+      "type": "gauge"
     },
     {
-      "datasource": { "type": "influxdb", "uid": "influxdb" },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
+          "color": {
+            "mode": "thresholds"
+          },
           "mappings": [],
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 1
+      },
       "id": 4,
-      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["count"], "fields": "", "values": false }, "textMode": "auto" },
-      "title": "Fahrten (7 Tage)",
-      "type": "stat",
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "count"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.3.1",
       "targets": [
         {
-          "datasource": { "type": "influxdb", "uid": "influxdb" },
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb"
+          },
           "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -7d)\n  |> filter(fn: (r) => r._measurement == \"trip_summary\")\n  |> filter(fn: (r) => r.vehicle_id == \"${vehicle_id}\")\n  |> filter(fn: (r) => r._field == \"duration_s\")\n  |> group()\n  |> count()",
           "refId": "A"
         }
-      ]
+      ],
+      "title": "Fahrten (7 Tage)",
+      "type": "stat"
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      },
       "id": 101,
       "panels": [],
       "title": "Verlaufsdiagramme",
       "type": "row"
     },
     {
-      "datasource": { "type": "influxdb", "uid": "influxdb" },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": { "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "Liter", "axisPlacement": "auto", "drawStyle": "line", "fillOpacity": 20, "gradientMode": "opacity", "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 4, "scaleDistribution": { "type": "linear" }, "showPoints": "auto", "spanNulls": true, "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "line" } },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Liter",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
           "mappings": [],
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "orange", "value": 10 }, { "color": "green", "value": 20 }] },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "orange",
+                "value": 10
+              },
+              {
+                "color": "green",
+                "value": 20
+              }
+            ]
+          },
           "unit": "litre"
         },
         "overrides": []
       },
-      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 6 },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 6
+      },
       "id": 5,
-      "options": { "legend": { "calcs": ["last", "min", "mean"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
-      "title": "Kraftstoffverlauf",
-      "type": "timeseries",
+      "options": {
+        "legend": {
+          "calcs": [
+            "last",
+            "min",
+            "mean"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "12.3.1",
       "targets": [
         {
-          "datasource": { "type": "influxdb", "uid": "influxdb" },
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb"
+          },
           "query": "from(bucket: \"vehicle_data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"vehicle_state\")\n  |> filter(fn: (r) => r.vehicle_id == \"${vehicle_id}\")\n  |> filter(fn: (r) => r._field == \"fuel_l\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)",
           "refId": "A"
         }
-      ]
+      ],
+      "title": "Kraftstoffverlauf",
+      "type": "timeseries"
     },
     {
-      "datasource": { "type": "influxdb", "uid": "influxdb" },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": { "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "Volt", "axisPlacement": "auto", "drawStyle": "line", "fillOpacity": 10, "gradientMode": "none", "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 4, "scaleDistribution": { "type": "linear" }, "showPoints": "auto", "spanNulls": true, "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "line" } },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Volt",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
           "mappings": [],
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "orange", "value": 11.5 }, { "color": "green", "value": 12.2 }] },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "orange",
+                "value": 11.5
+              },
+              {
+                "color": "green",
+                "value": 12.2
+              }
+            ]
+          },
           "unit": "volt"
         },
         "overrides": []
       },
-      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 6 },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 6
+      },
       "id": 6,
-      "options": { "legend": { "calcs": ["last", "min", "mean"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
-      "title": "Batterieverlauf",
-      "type": "timeseries",
+      "options": {
+        "legend": {
+          "calcs": [
+            "last",
+            "min",
+            "mean"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "12.3.1",
       "targets": [
         {
-          "datasource": { "type": "influxdb", "uid": "influxdb" },
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb"
+          },
           "query": "from(bucket: \"vehicle_data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"vehicle_state\")\n  |> filter(fn: (r) => r.vehicle_id == \"${vehicle_id}\")\n  |> filter(fn: (r) => r._field == \"battery_v\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)",
           "refId": "A"
         }
-      ]
+      ],
+      "title": "Batterieverlauf",
+      "type": "timeseries"
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 13 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 13
+      },
       "id": 102,
       "panels": [],
       "title": "Fahrten und GPS",
       "type": "row"
     },
     {
-      "datasource": { "type": "influxdb", "uid": "influxdb" },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb"
+      },
       "fieldConfig": {
         "defaults": {
-          "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "inspect": false, "filterable": false },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false,
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
           "mappings": [],
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
         },
         "overrides": [
-          { "matcher": { "id": "byName", "options": "trip_id" }, "properties": [{ "id": "displayName", "value": "Fahrt-ID" }] },
-          { "matcher": { "id": "byName", "options": "duration_s" }, "properties": [{ "id": "displayName", "value": "Dauer" }, { "id": "unit", "value": "s" }] },
-          { "matcher": { "id": "byName", "options": "fuel_used" }, "properties": [{ "id": "displayName", "value": "Verbrauch" }, { "id": "unit", "value": "litre" }] },
-          { "matcher": { "id": "byName", "options": "max_acceleration" }, "properties": [{ "id": "displayName", "value": "Max Beschl." }] },
-          { "matcher": { "id": "byName", "options": "_time" }, "properties": [{ "id": "displayName", "value": "Datum" }] }
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "trip_id"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Fahrt-ID"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "duration_s"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Dauer"
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "fuel_used"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Verbrauch"
+              },
+              {
+                "id": "unit",
+                "value": "litre"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "max_acceleration"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Max Beschl."
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "_time"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Datum"
+              }
+            ]
+          }
         ]
       },
-      "gridPos": { "h": 7, "w": 24, "x": 0, "y": 14 },
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
       "id": 7,
-      "options": { "cellHeight": "sm", "showHeader": true, "sortBy": [{ "desc": true, "displayName": "Datum" }] },
-      "title": "Letzte Fahrten",
-      "type": "table",
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Datum"
+          }
+        ]
+      },
+      "pluginVersion": "12.3.1",
       "targets": [
         {
-          "datasource": { "type": "influxdb", "uid": "influxdb" },
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb"
+          },
           "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"trip_summary\")\n  |> filter(fn: (r) => r.vehicle_id == \"${vehicle_id}\")\n  |> pivot(rowKey:[\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> sort(columns: [\"_time\"], desc: true)\n  |> limit(n: 20)\n  |> keep(columns: [\"_time\", \"trip_id\", \"duration_s\", \"fuel_used\", \"max_acceleration\", \"max_braking\"])",
           "refId": "A"
         }
-      ]
+      ],
+      "title": "Letzte Fahrten",
+      "type": "table"
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 21 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 21
+      },
       "id": 103,
       "panels": [],
       "title": "Fehler und Alarme",
       "type": "row"
     },
     {
-      "datasource": { "type": "influxdb", "uid": "influxdb" },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
-          "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "inspect": false, "filterable": false },
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false,
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
           "mappings": [
-            { "options": { "1": { "color": "red", "index": 0, "text": "AKTIV" } }, "type": "value" },
-            { "options": { "0": { "color": "green", "index": 1, "text": "Geloest" } }, "type": "value" }
+            {
+              "options": {
+                "1": {
+                  "color": "red",
+                  "index": 0,
+                  "text": "AKTIV"
+                }
+              },
+              "type": "value"
+            },
+            {
+              "options": {
+                "0": {
+                  "color": "green",
+                  "index": 1,
+                  "text": "Geloest"
+                }
+              },
+              "type": "value"
+            }
           ],
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
         },
         "overrides": [
-          { "matcher": { "id": "byName", "options": "error_code" }, "properties": [{ "id": "displayName", "value": "Fehlercode" }] },
-          { "matcher": { "id": "byName", "options": "active" }, "properties": [{ "id": "displayName", "value": "Status" }] },
-          { "matcher": { "id": "byName", "options": "_time" }, "properties": [{ "id": "displayName", "value": "Zeit" }] }
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "error_code"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Fehlercode"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "active"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Status"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "_time"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Zeit"
+              }
+            ]
+          }
         ]
       },
-      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 22 },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 22
+      },
       "id": 8,
-      "options": { "cellHeight": "sm", "showHeader": true, "sortBy": [{ "desc": true, "displayName": "Zeit" }] },
-      "title": "Fahrzeugfehler (OBD-II)",
-      "type": "table",
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Zeit"
+          }
+        ]
+      },
+      "pluginVersion": "12.3.1",
       "targets": [
         {
-          "datasource": { "type": "influxdb", "uid": "influxdb" },
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb"
+          },
           "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"vehicle_errors\")\n  |> filter(fn: (r) => r.vehicle_id == \"${vehicle_id}\")\n  |> pivot(rowKey:[\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> sort(columns: [\"_time\"], desc: true)\n  |> limit(n: 20)\n  |> keep(columns: [\"_time\", \"error_code\", \"active\"])",
           "refId": "A"
         }
-      ]
+      ],
+      "title": "Fahrzeugfehler (OBD-II)",
+      "type": "table"
     },
     {
-      "datasource": { "type": "influxdb", "uid": "influxdb" },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
-          "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "inspect": false, "filterable": false },
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false,
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
           "mappings": [],
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "orange", "value": null }] }
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "orange",
+                "value": 0
+              }
+            ]
+          }
         },
         "overrides": [
-          { "matcher": { "id": "byName", "options": "alert_type" }, "properties": [{ "id": "displayName", "value": "Typ" }] },
-          { "matcher": { "id": "byName", "options": "message" }, "properties": [{ "id": "displayName", "value": "Nachricht" }] },
-          { "matcher": { "id": "byName", "options": "_time" }, "properties": [{ "id": "displayName", "value": "Zeit" }] }
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "alert_type"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Typ"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "message"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Nachricht"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "_time"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Zeit"
+              }
+            ]
+          }
         ]
       },
-      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 22 },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 22
+      },
       "id": 9,
-      "options": { "cellHeight": "sm", "showHeader": true, "sortBy": [{ "desc": true, "displayName": "Zeit" }] },
-      "title": "Alarme",
-      "type": "table",
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Zeit"
+          }
+        ]
+      },
+      "pluginVersion": "12.3.1",
       "targets": [
         {
-          "datasource": { "type": "influxdb", "uid": "influxdb" },
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb"
+          },
           "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"alerts\")\n  |> filter(fn: (r) => r.vehicle_id == \"${vehicle_id}\")\n  |> pivot(rowKey:[\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> sort(columns: [\"_time\"], desc: true)\n  |> limit(n: 20)\n  |> keep(columns: [\"_time\", \"alert_type\", \"message\"])",
           "refId": "A"
         }
-      ]
+      ],
+      "title": "Alarme",
+      "type": "table"
     }
   ],
+  "preload": false,
   "refresh": "5s",
-  "schemaVersion": 39,
-  "tags": ["smart-car", "vehicle", "detail"],
+  "schemaVersion": 42,
+  "tags": [
+    "smart-car",
+    "vehicle",
+    "detail"
+  ],
   "templating": {
     "list": [
       {
-        "current": { "selected": false, "text": "TEST001", "value": "TEST001" },
-        "datasource": { "type": "influxdb", "uid": "influxdb" },
-        "definition": "from(bucket: \"vehicle_data\") |> range(start: -30d) |> filter(fn: (r) => r._measurement == \"vehicle_state\") |> group(columns: [\"vehicle_id\"]) |> distinct(column: \"vehicle_id\") |> keep(columns: [\"_value\"])",
-        "hide": 0,
+        "current": {
+          "text": "TEST001",
+          "value": "TEST001"
+        },
+        "datasource": {
+          "type": "influxdb",
+          "uid": "influxdb"
+        },
+        "definition": "import \"influxdata/influxdb/schema\"\r\nschema.tagValues(\r\n  bucket: \"vehicle_data\",\r\n  tag: \"vehicle_id\",\r\n  start: -30d\r\n)\r\n",
         "includeAll": false,
         "label": "Fahrzeug",
-        "multi": false,
         "name": "vehicle_id",
         "options": [],
-        "query": "from(bucket: \"vehicle_data\") |> range(start: -30d) |> filter(fn: (r) => r._measurement == \"vehicle_state\") |> group(columns: [\"vehicle_id\"]) |> distinct(column: \"vehicle_id\") |> keep(columns: [\"_value\"])",
+        "query": {
+          "0": "f",
+          "1": "r",
+          "2": "o",
+          "3": "m",
+          "4": "(",
+          "5": "b",
+          "6": "u",
+          "7": "c",
+          "8": "k",
+          "9": "e",
+          "10": "t",
+          "11": ":",
+          "12": " ",
+          "13": "\"",
+          "14": "v",
+          "15": "e",
+          "16": "h",
+          "17": "i",
+          "18": "c",
+          "19": "l",
+          "20": "e",
+          "21": "_",
+          "22": "d",
+          "23": "a",
+          "24": "t",
+          "25": "a",
+          "26": "\"",
+          "27": ")",
+          "28": " ",
+          "29": "|",
+          "30": ">",
+          "31": " ",
+          "32": "r",
+          "33": "a",
+          "34": "n",
+          "35": "g",
+          "36": "e",
+          "37": "(",
+          "38": "s",
+          "39": "t",
+          "40": "a",
+          "41": "r",
+          "42": "t",
+          "43": ":",
+          "44": " ",
+          "45": "-",
+          "46": "3",
+          "47": "0",
+          "48": "d",
+          "49": ")",
+          "50": " ",
+          "51": "|",
+          "52": ">",
+          "53": " ",
+          "54": "f",
+          "55": "i",
+          "56": "l",
+          "57": "t",
+          "58": "e",
+          "59": "r",
+          "60": "(",
+          "61": "f",
+          "62": "n",
+          "63": ":",
+          "64": " ",
+          "65": "(",
+          "66": "r",
+          "67": ")",
+          "68": " ",
+          "69": "=",
+          "70": ">",
+          "71": " ",
+          "72": "r",
+          "73": ".",
+          "74": "_",
+          "75": "m",
+          "76": "e",
+          "77": "a",
+          "78": "s",
+          "79": "u",
+          "80": "r",
+          "81": "e",
+          "82": "m",
+          "83": "e",
+          "84": "n",
+          "85": "t",
+          "86": " ",
+          "87": "=",
+          "88": "=",
+          "89": " ",
+          "90": "\"",
+          "91": "v",
+          "92": "e",
+          "93": "h",
+          "94": "i",
+          "95": "c",
+          "96": "l",
+          "97": "e",
+          "98": "_",
+          "99": "s",
+          "100": "t",
+          "101": "a",
+          "102": "t",
+          "103": "e",
+          "104": "\"",
+          "105": ")",
+          "106": " ",
+          "107": "|",
+          "108": ">",
+          "109": " ",
+          "110": "g",
+          "111": "r",
+          "112": "o",
+          "113": "u",
+          "114": "p",
+          "115": "(",
+          "116": "c",
+          "117": "o",
+          "118": "l",
+          "119": "u",
+          "120": "m",
+          "121": "n",
+          "122": "s",
+          "123": ":",
+          "124": " ",
+          "125": "[",
+          "126": "\"",
+          "127": "v",
+          "128": "e",
+          "129": "h",
+          "130": "i",
+          "131": "c",
+          "132": "l",
+          "133": "e",
+          "134": "_",
+          "135": "i",
+          "136": "d",
+          "137": "\"",
+          "138": "]",
+          "139": ")",
+          "140": " ",
+          "141": "|",
+          "142": ">",
+          "143": " ",
+          "144": "d",
+          "145": "i",
+          "146": "s",
+          "147": "t",
+          "148": "i",
+          "149": "n",
+          "150": "c",
+          "151": "t",
+          "152": "(",
+          "153": "c",
+          "154": "o",
+          "155": "l",
+          "156": "u",
+          "157": "m",
+          "158": "n",
+          "159": ":",
+          "160": " ",
+          "161": "\"",
+          "162": "v",
+          "163": "e",
+          "164": "h",
+          "165": "i",
+          "166": "c",
+          "167": "l",
+          "168": "e",
+          "169": "_",
+          "170": "i",
+          "171": "d",
+          "172": "\"",
+          "173": ")",
+          "174": " ",
+          "175": "|",
+          "176": ">",
+          "177": " ",
+          "178": "k",
+          "179": "e",
+          "180": "e",
+          "181": "p",
+          "182": "(",
+          "183": "c",
+          "184": "o",
+          "185": "l",
+          "186": "u",
+          "187": "m",
+          "188": "n",
+          "189": "s",
+          "190": ":",
+          "191": " ",
+          "192": "[",
+          "193": "\"",
+          "194": "_",
+          "195": "v",
+          "196": "a",
+          "197": "l",
+          "198": "u",
+          "199": "e",
+          "200": "\"",
+          "201": "]",
+          "202": ")",
+          "query": "import \"influxdata/influxdb/schema\"\r\nschema.tagValues(\r\n  bucket: \"vehicle_data\",\r\n  tag: \"vehicle_id\",\r\n  start: -30d\r\n)\r\n"
+        },
         "refresh": 2,
         "regex": "",
-        "skipUrlSync": false,
         "sort": 1,
         "type": "query"
       }
     ]
   },
-  "time": { "from": "now-1h", "to": "now" },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
   "timepicker": {},
   "timezone": "browser",
   "title": "Fahrzeug Details",
