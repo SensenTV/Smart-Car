@@ -62,10 +62,19 @@ def get_calendar_service():
             KEY_FILE, scopes=SCOPES
         )
         _service = build('calendar', 'v3', credentials=credentials)
-        print("Google Calendar Service verbunden")
+        
+        # Test: Versuche die Kalender-Liste abzurufen
+        try:
+            calendars = _service.calendarList().list().execute()
+            print(f"Google Calendar Service verbunden - {len(calendars.get('items', []))} Kalender gefunden")
+        except Exception as e:
+            print(f"Kalender-List Fehler (aber Service ist verbunden): {str(e)}")
+        
         return _service
     except Exception as e:
-        print("Service-Fehler: " + str(e))
+        print("Service-Fehler beim Erstellen: " + str(e))
+        import traceback
+        traceback.print_exc()
         return None
 
 
@@ -139,8 +148,22 @@ def create_event(event_data):
             'link': created.get('htmlLink', '')
         }
     except Exception as e:
-        print("Fehler: " + str(e))
-        return {'success': False, 'error': str(e)}
+        error_str = str(e)
+        print(f"Fehler beim Erstellen des Events: {error_str}")
+        
+        # Detaillierte Fehlermeldung für JWT-Probleme
+        if 'invalid_grant' in error_str:
+            print("HINWEIS: JWT-Fehler - Dies kann bedeuten:")
+            print("1. Der Kalender wurde dem Service Account NICHT freigegeben")
+            print("2. Der private Key ist ungültig")
+            print("3. Die Kalender-ID ist falsch")
+            print(f"   Service Account: {service._credentials.service_account_email if hasattr(service, '_credentials') else 'unbekannt'}")
+            print(f"   Kalender ID: {calendar_id}")
+        
+        import traceback
+        traceback.print_exc()
+        
+        return {'success': False, 'error': error_str}
 
 
 @app.route('/health', methods=['GET'])
@@ -190,5 +213,15 @@ if __name__ == '__main__':
     print("Google API verfuegbar: " + str(GOOGLE_API_AVAILABLE))
     print("Google Calendar enabled: " + str(google_config.get('enabled', False)))
     print("Calendar ID: " + google_config.get('calendar_id', 'nicht konfiguriert'))
+    print("Key File: " + KEY_FILE)
+    print("Key File exists: " + str(os.path.exists(KEY_FILE)))
     
+    # Versuche Service zu verbinden beim Start
+    service = get_calendar_service()
+    if service:
+        print("✓ Google Calendar Service erfolgreich verbunden!")
+    else:
+        print("✗ Google Calendar Service FEHLER!")
+    
+    print("=" * 50)
     app.run(host='0.0.0.0', port=5000, debug=False)

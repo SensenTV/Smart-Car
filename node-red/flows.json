@@ -444,38 +444,13 @@
         ]
     },
     {
-        "id": "inject_error",
-        "type": "inject",
-        "z": "flow_test",
-        "name": "ERROR",
-        "props": [
-            {
-                "p": "payload"
-            }
-        ],
-        "repeat": "",
-        "crontab": "",
-        "once": false,
-        "onceDelay": 0.1,
-        "topic": "",
-        "payload": "set_error",
-        "payloadType": "str",
-        "x": 110,
-        "y": 540,
-        "wires": [
-            [
-                "func_controller"
-            ]
-        ]
-    },
-    {
         "id": "comment_values",
         "type": "comment",
         "z": "flow_test",
         "name": "=== MANUELLE WERTE ===",
         "info": "Setze Tank und Batterie manuell",
         "x": 160,
-        "y": 600,
+        "y": 820,
         "wires": []
     },
     {
@@ -495,8 +470,8 @@
         "topic": "",
         "payload": "set_fuel:50",
         "payloadType": "str",
-        "x": 160,
-        "y": 640,
+        "x": 140,
+        "y": 540,
         "wires": [
             [
                 "func_controller"
@@ -520,8 +495,8 @@
         "topic": "",
         "payload": "set_fuel:25",
         "payloadType": "str",
-        "x": 160,
-        "y": 680,
+        "x": 140,
+        "y": 580,
         "wires": [
             [
                 "func_controller"
@@ -545,8 +520,8 @@
         "topic": "",
         "payload": "set_fuel:8",
         "payloadType": "str",
-        "x": 150,
-        "y": 720,
+        "x": 140,
+        "y": 620,
         "wires": [
             [
                 "func_controller"
@@ -570,8 +545,8 @@
         "topic": "",
         "payload": "set_battery:13.8",
         "payloadType": "str",
-        "x": 180,
-        "y": 760,
+        "x": 160,
+        "y": 660,
         "wires": [
             [
                 "func_controller"
@@ -595,8 +570,8 @@
         "topic": "",
         "payload": "set_battery:12.5",
         "payloadType": "str",
-        "x": 170,
-        "y": 800,
+        "x": 150,
+        "y": 700,
         "wires": [
             [
                 "func_controller"
@@ -620,8 +595,8 @@
         "topic": "",
         "payload": "set_battery:11.5",
         "payloadType": "str",
-        "x": 190,
-        "y": 840,
+        "x": 180,
+        "y": 740,
         "wires": [
             [
                 "func_controller"
@@ -635,7 +610,7 @@
         "name": "=== FEHLER SIMULATION ===",
         "info": "Simuliert verschiedene Fehlercodes",
         "x": 170,
-        "y": 900,
+        "y": 860,
         "wires": []
     },
     {
@@ -656,7 +631,7 @@
         "payload": "CHECK_ENGINE",
         "payloadType": "str",
         "x": 140,
-        "y": 700,
+        "y": 1020,
         "wires": [
             [
                 "func_error_gen"
@@ -681,7 +656,7 @@
         "payload": "LOW_OIL",
         "payloadType": "str",
         "x": 120,
-        "y": 740,
+        "y": 980,
         "wires": [
             [
                 "func_error_gen"
@@ -706,7 +681,7 @@
         "payload": "BATTERY_LOW",
         "payloadType": "str",
         "x": 140,
-        "y": 780,
+        "y": 940,
         "wires": [
             [
                 "func_error_gen"
@@ -731,7 +706,7 @@
         "payload": "TIRE_PRESSURE",
         "payloadType": "str",
         "x": 150,
-        "y": 820,
+        "y": 900,
         "wires": [
             [
                 "func_error_gen"
@@ -756,7 +731,7 @@
         "payload": "CLEAR_ALL",
         "payloadType": "str",
         "x": 150,
-        "y": 860,
+        "y": 1060,
         "wires": [
             [
                 "func_error_gen"
@@ -770,8 +745,8 @@
         "name": "Fehler-Generator",
         "func": "// Generiert Fehlermeldungen fuer TEST001 mit Toggle-Logik\nconst VEHICLE = 'TEST001';\nconst input = msg.payload;\n\n// Fehler-Status aus Context laden\nlet errorStates = context.get('errorStates') || {};\n\nif (input === 'CLEAR_ALL') {\n    // Alle Fehler loeschen\n    const errors = ['CHECK_ENGINE', 'LOW_OIL', 'BATTERY_LOW', 'TIRE_PRESSURE'];\n    const messages = errors.map(err => {\n        errorStates[err] = false;\n        return {\n            topic: 'smartcar/' + VEHICLE,\n            payload: `error,${VEHICLE},${err},0`\n        };\n    });\n    context.set('errorStates', errorStates);\n    node.status({fill:'green', shape:'dot', text: 'Alle Fehler geloescht'});\n    return [messages];\n}\n\n// Toggle: aktuellen Status umkehren\nconst errorCode = input;\nconst currentState = errorStates[errorCode] || false;\nconst newState = !currentState;\nerrorStates[errorCode] = newState;\ncontext.set('errorStates', errorStates);\n\nconst active = newState ? '1' : '0';\nmsg.topic = 'smartcar/' + VEHICLE;\nmsg.payload = `error,${VEHICLE},${errorCode},${active}`;\n\n// Status anzeigen\nconst activeErrors = Object.entries(errorStates).filter(([k, v]) => v).map(([k]) => k);\nconst color = activeErrors.length > 0 ? 'red' : 'green';\nconst text = activeErrors.length > 0 ? activeErrors.join(', ') : 'Keine Fehler';\nnode.status({fill: color, shape:'dot', text: text});\n\nreturn msg;",
         "outputs": 1,
-        "x": 470,
-        "y": 760,
+        "x": 750,
+        "y": 700,
         "wires": [
             [
                 "mqtt_out_test"
@@ -796,7 +771,7 @@
         "payload": "tick",
         "payloadType": "str",
         "x": 140,
-        "y": 580,
+        "y": 780,
         "wires": [
             [
                 "func_controller"
