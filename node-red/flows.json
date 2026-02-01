@@ -14,6 +14,13 @@
         "info": "Manuelle Testdaten ohne ESP32-Hardware"
     },
     {
+        "id": "flow_alerts",
+        "type": "tab",
+        "label": "Alerts & Kalender",
+        "disabled": false,
+        "info": "Automatische Benachrichtigungen und Outlook-Kalender Integration"
+    },
+    {
         "id": "config_mqtt_internal",
         "type": "mqtt-broker",
         "name": "MQTT Broker (Mosquitto)",
@@ -26,14 +33,14 @@
         "keepalive": "60",
         "cleansession": true,
         "birthTopic": "smartcar/system/status",
-        "birthPayload": "Node-RED online",
         "birthQos": "1",
+        "birthPayload": "Node-RED online",
         "closeTopic": "smartcar/system/status",
-        "closePayload": "Node-RED offline",
         "closeQos": "1",
+        "closePayload": "Node-RED offline",
         "willTopic": "smartcar/system/status",
-        "willPayload": "Node-RED disconnected",
-        "willQos": "1"
+        "willQos": "1",
+        "willPayload": "Node-RED disconnected"
     },
     {
         "id": "mqtt_in_vehicles",
@@ -50,18 +57,27 @@
         "inputs": 0,
         "x": 120,
         "y": 100,
-        "wires": [["func_validate", "debug_raw"]]
+        "wires": [
+            [
+                "func_validate",
+                "debug_raw"
+            ]
+        ]
     },
     {
         "id": "func_validate",
         "type": "function",
         "z": "flow_main",
         "name": "Validierung",
-        "func": "// Eingabevalidierung vor Parsing\nlet payload = msg.payload;\n\n// Pruefe ob Payload vorhanden\nif (!payload || payload.length === 0) {\n    node.warn('Leere Nachricht empfangen');\n    node.status({fill:'yellow', shape:'ring', text: 'Leer'});\n    return null;\n}\n\n// Pruefe minimale Laenge (type,vid,...)\nif (payload.length < 10) {\n    node.warn('Nachricht zu kurz: ' + payload);\n    node.status({fill:'yellow', shape:'ring', text: 'Zu kurz'});\n    return null;\n}\n\n// Pruefe auf bekannte Typen\nlet type = payload.split(',')[0].toLowerCase();\nlet validTypes = ['state', 'error', 'trip', 'gps', 'alert', 'vehicle_errors'];\n\nif (!validTypes.includes(type)) {\n    node.warn('Unbekannter Typ: ' + type);\n    node.status({fill:'yellow', shape:'ring', text: 'Typ: ' + type});\n    return null;\n}\n\nnode.status({fill:'green', shape:'dot', text: type});\nreturn msg;",
+        "func": "// Eingabevalidierung vor Parsing\nlet payload = msg.payload;\n\n// Pruefe ob Payload vorhanden\nif (!payload || payload.length === 0) {\n    node.warn('Leere Nachricht empfangen');\n    node.status({fill:'yellow', shape:'ring', text: 'Leer'});\n    return null;\n}\n\n// Pruefe minimale Laenge (type,vid,...)\nif (payload.length < 10) {\n    node.warn('Nachricht zu kurz: ' + payload);\n    node.status({fill:'yellow', shape:'ring', text: 'Zu kurz'});\n    return null;\n}\n\n// Pruefe auf bekannte Typen\nlet type = payload.split(',')[0].toLowerCase();\nlet validTypes = ['state', 'error', 'trip', 'gps', 'alert', 'vehicle_errors', 'imu', 'obd'];\n\nif (!validTypes.includes(type)) {\n    node.warn('Unbekannter Typ: ' + type);\n    node.status({fill:'yellow', shape:'ring', text: 'Typ: ' + type});\n    return null;\n}\n\nnode.status({fill:'green', shape:'dot', text: type});\nreturn msg;",
         "outputs": 1,
         "x": 290,
         "y": 100,
-        "wires": [["func_parse_csv"]]
+        "wires": [
+            [
+                "func_parse_csv"
+            ]
+        ]
     },
     {
         "id": "debug_raw",
@@ -82,12 +98,23 @@
         "type": "function",
         "z": "flow_main",
         "name": "CSV Parser",
-        "func": "/**\n * CSV zu InfluxDB Line Protocol Konverter\n * \n * Unterstuetzte Formate:\n * - state,VID,state_name,fuel,battery\n * - error,VID,error_code,active\n * - trip,VID,trip_id,duration,fuel_used,max_acc,max_brake\n * - gps,VID,lat,lon,speed\n * - alert,VID,alert_type,message\n */\n\nconst topicParts = msg.topic.split('/');\nconst vehicle_id = topicParts[1] || 'UNKNOWN';\nconst cols = msg.payload.toString().trim().split(',');\nconst type = cols[0].toLowerCase();\nconst ts = Date.now() * 1000000; // Nanosekunden\n\nlet line = '';\nlet success = false;\n\ntry {\n    switch(type) {\n        case 'state': {\n            if (cols.length < 5) throw new Error('state braucht 5 Felder');\n            const state = (cols[2] || 'unknown').replace(/[^a-zA-Z0-9]/g, '');\n            const fuel = parseFloat(cols[3]);\n            const battery = parseFloat(cols[4]);\n            \n            if (isNaN(fuel) || isNaN(battery)) throw new Error('Ungueltige Zahlenwerte');\n            if (fuel < 0 || fuel > 100) throw new Error('Kraftstoff ausserhalb Bereich');\n            if (battery < 0 || battery > 20) throw new Error('Batterie ausserhalb Bereich');\n            \n            line = `vehicle_state,vehicle_id=${vehicle_id},state=${state} fuel_l=${fuel},battery_v=${battery},online=1i ${ts}`;\n            success = true;\n            break;\n        }\n        case 'error': {\n            if (cols.length < 4) throw new Error('error braucht 4 Felder');\n            const error_code = cols[2].replace(/[^a-zA-Z0-9_]/g, '');\n            const active = parseInt(cols[3]) === 1 ? 1 : 0;\n            \n            line = `vehicle_errors,vehicle_id=${vehicle_id},error_code=${error_code} active=${active}i ${ts}`;\n            success = true;\n            break;\n        }\n        case 'trip': {\n            if (cols.length < 7) throw new Error('trip braucht 7 Felder');\n            const trip_id = cols[2].replace(/[^a-zA-Z0-9_]/g, '');\n            const duration = parseInt(cols[3]) || 0;\n            const fuel_used = parseFloat(cols[4]) || 0;\n            const max_acc = parseFloat(cols[5]) || 0;\n            const max_brake = parseFloat(cols[6]) || 0;\n            \n            line = `trip_summary,vehicle_id=${vehicle_id},trip_id=${trip_id} duration_s=${duration}i,fuel_used=${fuel_used},max_acceleration=${max_acc},max_braking=${max_brake} ${ts}`;\n            success = true;\n            break;\n        }\n        case 'gps': {\n            if (cols.length < 5) throw new Error('gps braucht 5 Felder');\n            const lat = parseFloat(cols[2]);\n            const lon = parseFloat(cols[3]);\n            const speed = parseFloat(cols[4]) || 0;\n            \n            if (isNaN(lat) || isNaN(lon)) throw new Error('Ungueltige GPS-Koordinaten');\n            if (lat < -90 || lat > 90) throw new Error('Breitengrad ausserhalb Bereich');\n            if (lon < -180 || lon > 180) throw new Error('Laengengrad ausserhalb Bereich');\n            \n            line = `vehicle_gps,vehicle_id=${vehicle_id} latitude=${lat},longitude=${lon},speed_kmh=${speed} ${ts}`;\n            success = true;\n            break;\n        }\n        case 'alert': {\n            if (cols.length < 3) throw new Error('alert braucht min. 3 Felder');\n            const alert_type = cols[2].replace(/[^a-zA-Z0-9_]/g, '');\n            const alert_msg = (cols[3] || '').replace(/\"/g, \"'\");\n            \n            line = `alerts,vehicle_id=${vehicle_id},alert_type=${alert_type} message=\"${alert_msg}\" ${ts}`;\n            success = true;\n            break;\n        }\n        default:\n            throw new Error('Unbekannter Typ: ' + type);\n    }\n    \n    if (success) {\n        msg.payload = line;\n        msg.headers = {\n            'Authorization': 'Token vehicle-admin-token',\n            'Content-Type': 'text/plain; charset=utf-8'\n        };\n        msg._parsed = { type, vehicle_id, timestamp: ts };\n        node.status({fill:'green', shape:'dot', text: `${type} ${vehicle_id}`});\n        return [msg, null];\n    }\n    \n} catch(e) {\n    node.error('Parse-Fehler: ' + e.message, msg);\n    node.status({fill:'red', shape:'ring', text: e.message});\n    msg.error = e.message;\n    return [null, msg];\n}\n\nreturn null;",
+        "func": "/**\n * CSV zu InfluxDB Line Protocol Konverter\n * \n * Unterstuetzte Formate:\n * - state,VID,state_name,fuel,battery\n * - error,VID,error_code,active\n * - trip,VID,trip_id,duration,fuel_used,max_acc,max_brake\n * - gps,VID,lat,lon,speed\n * - alert,VID,alert_type,message\n * - imu,VID,acc_x,acc_y,acc_z,gyro_x,gyro_y,gyro_z\n */\n\nconst topicParts = msg.topic.split('/');\nconst vehicle_id = topicParts[1] || 'UNKNOWN';\nconst cols = msg.payload.toString().trim().split(',');\nconst type = cols[0].toLowerCase();\nconst ts = Date.now() * 1000000; // Nanosekunden\n\nlet line = '';\nlet success = false;\n\ntry {\n    switch(type) {\n        case 'state': {\n            if (cols.length < 5) throw new Error('state braucht 5 Felder');\n            const state = (cols[2] || 'unknown').replace(/[^a-zA-Z0-9]/g, '');\n            const fuel = parseFloat(cols[3]);\n            const battery = parseFloat(cols[4]);\n            \n            if (isNaN(fuel) || isNaN(battery)) throw new Error('Ungueltige Zahlenwerte');\n            if (fuel < 0 || fuel > 100) throw new Error('Kraftstoff ausserhalb Bereich');\n            if (battery < 0 || battery > 20) throw new Error('Batterie ausserhalb Bereich');\n            \n            line = `vehicle_state,vehicle_id=${vehicle_id},state=${state} fuel_l=${fuel},battery_v=${battery},online=1i ${ts}`;\n            success = true;\n            break;\n        }\n        case 'error': {\n            if (cols.length < 4) throw new Error('error braucht 4 Felder');\n            const error_code = cols[2].replace(/[^a-zA-Z0-9_]/g, '');\n            const active = parseInt(cols[3]) === 1 ? 1 : 0;\n            \n            line = `vehicle_errors,vehicle_id=${vehicle_id},error_code=${error_code} active=${active}i ${ts}`;\n            success = true;\n            break;\n        }\n        case 'trip': {\n            if (cols.length < 7) throw new Error('trip braucht min. 7 Felder');\n            const trip_id = cols[2].replace(/[^a-zA-Z0-9_]/g, '');\n            const duration = parseInt(cols[3]) || 0;\n            const fuel_used = parseFloat(cols[4]) || 0;\n            const max_acc = parseFloat(cols[5]) || 0;\n            const max_brake = parseFloat(cols[6]) || 0;\n            \n            line = `trip_summary,vehicle_id=${vehicle_id},trip_id=${trip_id} duration_s=${duration}i,fuel_used=${fuel_used},max_acceleration=${max_acc},max_braking=${max_brake} ${ts}`;\n            success = true;\n            break;\n        }\n        case 'gps': {\n            if (cols.length < 5) throw new Error('gps braucht 5 Felder');\n            const lat = parseFloat(cols[2]);\n            const lon = parseFloat(cols[3]);\n            const speed = parseFloat(cols[4]) || 0;\n            \n            if (isNaN(lat) || isNaN(lon)) throw new Error('Ungueltige GPS-Koordinaten');\n            if (lat < -90 || lat > 90) throw new Error('Breitengrad ausserhalb Bereich');\n            if (lon < -180 || lon > 180) throw new Error('Laengengrad ausserhalb Bereich');\n            \n            line = `vehicle_gps,vehicle_id=${vehicle_id} latitude=${lat},longitude=${lon},speed_kmh=${speed} ${ts}`;\n            success = true;\n            break;\n        }\n        case 'alert': {\n            if (cols.length < 3) throw new Error('alert braucht min. 3 Felder');\n            const alert_type = cols[2].replace(/[^a-zA-Z0-9_]/g, '');\n            const alert_msg = (cols[3] || '').replace(/\"/g, \"'\");\n            \n            line = `alerts,vehicle_id=${vehicle_id},alert_type=${alert_type} message=\"${alert_msg}\" ${ts}`;\n            success = true;\n            break;\n        }\n        case 'imu': {\n            // Format: imu,VID,acc_x,acc_y,acc_z,gyro_x,gyro_y,gyro_z\n            if (cols.length < 8) throw new Error('imu braucht 8 Felder');\n            const acc_x = parseFloat(cols[2]) || 0;\n            const acc_y = parseFloat(cols[3]) || 0;\n            const acc_z = parseFloat(cols[4]) || 0;\n            const gyro_x = parseFloat(cols[5]) || 0;\n            const gyro_y = parseFloat(cols[6]) || 0;\n            const gyro_z = parseFloat(cols[7]) || 0;\n            \n            // Gesamtbeschleunigung berechnen (G-Force)\n            const total_acc = Math.sqrt(acc_x*acc_x + acc_y*acc_y + acc_z*acc_z);\n            \n            line = `vehicle_imu,vehicle_id=${vehicle_id} acc_x=${acc_x},acc_y=${acc_y},acc_z=${acc_z},gyro_x=${gyro_x},gyro_y=${gyro_y},gyro_z=${gyro_z},total_acceleration=${total_acc.toFixed(3)} ${ts}`;\n            success = true;\n            \n            // Bei starker Beschleunigung/Bremsung Alert ausloesen\n            if (Math.abs(acc_x) > 0.4 || Math.abs(acc_y) > 0.4) {\n                msg.imu_event = {\n                    vehicle_id: vehicle_id,\n                    event_type: acc_x > 0.4 ? 'hard_acceleration' : (acc_x < -0.4 ? 'hard_braking' : 'hard_cornering'),\n                    value: total_acc\n                };\n            }\n            break;\n        }\n        case 'obd': {\n            // Format: obd,VID,speed,coolant_temp,rpm,throttle,battery,fuel_level,mil,dtc_count,oil_temp,intake_temp\n            if (cols.length < 12) throw new Error('obd braucht 12 Felder');\n            const vid = cols[1];\n            const speed = parseFloat(cols[2]) || 0;\n            const coolant = parseFloat(cols[3]) || 0;\n            const rpm = parseFloat(cols[4]) || 0;\n            const throttle = parseFloat(cols[5]) || 0;\n            const battery = parseFloat(cols[6]) || 0;\n            const fuel = parseFloat(cols[7]) || 0;\n            const mil = parseInt(cols[8]) || 0;\n            const dtc_count = parseInt(cols[9]) || 0;\n            const oil_temp = parseFloat(cols[10]) || 0;\n            const intake_temp = parseFloat(cols[11]) || 0;\n            \n            line = `vehicle_obd,vehicle_id=${vid} speed_kmh=${speed},coolant_temp=${coolant},rpm=${rpm},throttle_pct=${throttle},battery_v=${battery},fuel_level=${fuel},mil=${mil}i,dtc_count=${dtc_count}i,oil_temp=${oil_temp},intake_temp=${intake_temp} ${ts}`;\n            success = true;\n            break;\n        }\n        default:\n            throw new Error('Unbekannter Typ: ' + type);\n    }\n    \n    if (success) {\n        msg.payload = line;\n        msg.headers = {\n            'Authorization': 'Token vehicle-admin-token',\n            'Content-Type': 'text/plain; charset=utf-8'\n        };\n        msg._parsed = { type, vehicle_id, timestamp: ts };\n        node.status({fill:'green', shape:'dot', text: `${type} ${vehicle_id}`});\n        return [msg, null];\n    }\n    \n} catch(e) {\n    node.error('Parse-Fehler: ' + e.message, msg);\n    node.status({fill:'red', shape:'ring', text: e.message});\n    msg.error = e.message;\n    return [null, msg];\n}\n\nreturn null;",
         "outputs": 2,
-        "outputLabels": ["Erfolg", "Fehler"],
         "x": 430,
         "y": 100,
-        "wires": [["http_influx", "debug_line"], ["debug_error"]]
+        "wires": [
+            [
+                "http_influx",
+                "debug_line"
+            ],
+            [
+                "debug_error"
+            ]
+        ],
+        "outputLabels": [
+            "Erfolg",
+            "Fehler"
+        ]
     },
     {
         "id": "debug_line",
@@ -135,7 +162,11 @@
         "headers": [],
         "x": 600,
         "y": 100,
-        "wires": [["func_check_response"]]
+        "wires": [
+            [
+                "func_check_response"
+            ]
+        ]
     },
     {
         "id": "func_check_response",
@@ -144,10 +175,20 @@
         "name": "Response Check",
         "func": "const statusCode = msg.statusCode;\n\nif (statusCode === 204) {\n    // Erfolg - InfluxDB gibt 204 bei erfolgreichem Schreiben\n    node.status({fill:'green', shape:'dot', text: 'OK'});\n    return [msg, null];\n} else if (statusCode >= 400) {\n    // Fehler\n    node.error(`InfluxDB Fehler ${statusCode}: ${msg.payload}`, msg);\n    node.status({fill:'red', shape:'ring', text: `Fehler ${statusCode}`});\n    return [null, msg];\n} else {\n    node.status({fill:'yellow', shape:'ring', text: `Code ${statusCode}`});\n    return [msg, null];\n}",
         "outputs": 2,
-        "outputLabels": ["Erfolg", "Fehler"],
         "x": 800,
         "y": 100,
-        "wires": [["debug_success"], ["debug_influx_error"]]
+        "wires": [
+            [
+                "debug_success"
+            ],
+            [
+                "debug_influx_error"
+            ]
+        ],
+        "outputLabels": [
+            "Erfolg",
+            "Fehler"
+        ]
     },
     {
         "id": "debug_success",
@@ -202,7 +243,15 @@
         "type": "inject",
         "z": "flow_test",
         "name": "Status",
-        "props": [{"p": "payload"}, {"p": "topic", "vt": "str"}],
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
         "repeat": "",
         "crontab": "",
         "once": false,
@@ -212,14 +261,26 @@
         "payloadType": "str",
         "x": 130,
         "y": 100,
-        "wires": [["mqtt_out_test"]]
+        "wires": [
+            [
+                "mqtt_out_test"
+            ]
+        ]
     },
     {
         "id": "inject_error",
         "type": "inject",
         "z": "flow_test",
         "name": "Fehler",
-        "props": [{"p": "payload"}, {"p": "topic", "vt": "str"}],
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
         "repeat": "",
         "crontab": "",
         "once": false,
@@ -229,14 +290,26 @@
         "payloadType": "str",
         "x": 130,
         "y": 160,
-        "wires": [["mqtt_out_test"]]
+        "wires": [
+            [
+                "mqtt_out_test"
+            ]
+        ]
     },
     {
         "id": "inject_trip",
         "type": "inject",
         "z": "flow_test",
         "name": "Fahrt",
-        "props": [{"p": "payload"}, {"p": "topic", "vt": "str"}],
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
         "repeat": "",
         "crontab": "",
         "once": false,
@@ -246,14 +319,26 @@
         "payloadType": "str",
         "x": 130,
         "y": 220,
-        "wires": [["mqtt_out_test"]]
+        "wires": [
+            [
+                "mqtt_out_test"
+            ]
+        ]
     },
     {
         "id": "inject_alert",
         "type": "inject",
         "z": "flow_test",
         "name": "Alarm",
-        "props": [{"p": "payload"}, {"p": "topic", "vt": "str"}],
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
         "repeat": "",
         "crontab": "",
         "once": false,
@@ -263,14 +348,26 @@
         "payloadType": "str",
         "x": 130,
         "y": 280,
-        "wires": [["mqtt_out_test"]]
+        "wires": [
+            [
+                "mqtt_out_test"
+            ]
+        ]
     },
     {
         "id": "inject_gps",
         "type": "inject",
         "z": "flow_test",
         "name": "GPS",
-        "props": [{"p": "payload"}, {"p": "topic", "vt": "str"}],
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
         "repeat": "",
         "crontab": "",
         "once": false,
@@ -280,91 +377,468 @@
         "payloadType": "str",
         "x": 130,
         "y": 340,
-        "wires": [["mqtt_out_test"]]
+        "wires": [
+            [
+                "mqtt_out_test"
+            ]
+        ]
     },
     {
         "id": "comment_sim",
         "type": "comment",
         "z": "flow_test",
-        "name": "=== KONTINUIERLICHE SIMULATION ===",
-        "info": "START: Beginnt alle 5 Sekunden automatisch Daten zu generieren\nSTOP: Beendet die Simulation",
-        "x": 200,
+        "name": "=== STATUS STEUERUNG ===",
+        "info": "Klicke auf DRIVING, PARKED oder ERROR um den Status zu setzen.\nDaten werden automatisch alle 5 Sekunden gesendet.",
+        "x": 170,
         "y": 420,
         "wires": []
     },
     {
-        "id": "inject_start",
+        "id": "inject_driving",
         "type": "inject",
         "z": "flow_test",
-        "name": "START",
-        "props": [{"p": "payload"}],
+        "name": "DRIVING",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
         "repeat": "",
         "crontab": "",
         "once": false,
         "onceDelay": 0.1,
         "topic": "",
-        "payload": "start",
+        "payload": "set_driving",
         "payloadType": "str",
-        "x": 130,
-        "y": 480,
-        "wires": [["func_controller"]]
+        "x": 120,
+        "y": 460,
+        "wires": [
+            [
+                "func_controller"
+            ]
+        ]
     },
     {
-        "id": "inject_stop",
+        "id": "inject_parked",
         "type": "inject",
         "z": "flow_test",
-        "name": "STOP",
-        "props": [{"p": "payload"}],
+        "name": "PARKED",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
         "repeat": "",
         "crontab": "",
         "once": false,
         "onceDelay": 0.1,
         "topic": "",
-        "payload": "stop",
+        "payload": "set_parked",
         "payloadType": "str",
-        "x": 130,
+        "x": 120,
+        "y": 500,
+        "wires": [
+            [
+                "func_controller"
+            ]
+        ]
+    },
+    {
+        "id": "inject_error",
+        "type": "inject",
+        "z": "flow_test",
+        "name": "ERROR",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "set_error",
+        "payloadType": "str",
+        "x": 110,
         "y": 540,
-        "wires": [["func_controller"]]
+        "wires": [
+            [
+                "func_controller"
+            ]
+        ]
+    },
+    {
+        "id": "comment_values",
+        "type": "comment",
+        "z": "flow_test",
+        "name": "=== MANUELLE WERTE ===",
+        "info": "Setze Tank und Batterie manuell",
+        "x": 160,
+        "y": 600,
+        "wires": []
+    },
+    {
+        "id": "inject_fuel_full",
+        "type": "inject",
+        "z": "flow_test",
+        "name": "Tank VOLL (50L)",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "set_fuel:50",
+        "payloadType": "str",
+        "x": 160,
+        "y": 640,
+        "wires": [
+            [
+                "func_controller"
+            ]
+        ]
+    },
+    {
+        "id": "inject_fuel_half",
+        "type": "inject",
+        "z": "flow_test",
+        "name": "Tank HALB (25L)",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "set_fuel:25",
+        "payloadType": "str",
+        "x": 160,
+        "y": 680,
+        "wires": [
+            [
+                "func_controller"
+            ]
+        ]
+    },
+    {
+        "id": "inject_fuel_low",
+        "type": "inject",
+        "z": "flow_test",
+        "name": "Tank LEER (8L)",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "set_fuel:8",
+        "payloadType": "str",
+        "x": 150,
+        "y": 720,
+        "wires": [
+            [
+                "func_controller"
+            ]
+        ]
+    },
+    {
+        "id": "inject_battery_full",
+        "type": "inject",
+        "z": "flow_test",
+        "name": "Batterie VOLL (13.8V)",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "set_battery:13.8",
+        "payloadType": "str",
+        "x": 180,
+        "y": 760,
+        "wires": [
+            [
+                "func_controller"
+            ]
+        ]
+    },
+    {
+        "id": "inject_battery_ok",
+        "type": "inject",
+        "z": "flow_test",
+        "name": "Batterie OK (12.5V)",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "set_battery:12.5",
+        "payloadType": "str",
+        "x": 170,
+        "y": 800,
+        "wires": [
+            [
+                "func_controller"
+            ]
+        ]
+    },
+    {
+        "id": "inject_battery_low",
+        "type": "inject",
+        "z": "flow_test",
+        "name": "Batterie SCHWACH (11.5V)",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "set_battery:11.5",
+        "payloadType": "str",
+        "x": 190,
+        "y": 840,
+        "wires": [
+            [
+                "func_controller"
+            ]
+        ]
+    },
+    {
+        "id": "comment_errors",
+        "type": "comment",
+        "z": "flow_test",
+        "name": "=== FEHLER SIMULATION ===",
+        "info": "Simuliert verschiedene Fehlercodes",
+        "x": 170,
+        "y": 900,
+        "wires": []
+    },
+    {
+        "id": "inject_err_engine",
+        "type": "inject",
+        "z": "flow_test",
+        "name": "CHECK_ENGINE",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "CHECK_ENGINE",
+        "payloadType": "str",
+        "x": 140,
+        "y": 700,
+        "wires": [
+            [
+                "func_error_gen"
+            ]
+        ]
+    },
+    {
+        "id": "inject_err_oil",
+        "type": "inject",
+        "z": "flow_test",
+        "name": "LOW_OIL",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "LOW_OIL",
+        "payloadType": "str",
+        "x": 120,
+        "y": 740,
+        "wires": [
+            [
+                "func_error_gen"
+            ]
+        ]
+    },
+    {
+        "id": "inject_err_battery",
+        "type": "inject",
+        "z": "flow_test",
+        "name": "BATTERY_LOW",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "BATTERY_LOW",
+        "payloadType": "str",
+        "x": 140,
+        "y": 780,
+        "wires": [
+            [
+                "func_error_gen"
+            ]
+        ]
+    },
+    {
+        "id": "inject_err_tire",
+        "type": "inject",
+        "z": "flow_test",
+        "name": "TIRE_PRESSURE",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "TIRE_PRESSURE",
+        "payloadType": "str",
+        "x": 150,
+        "y": 820,
+        "wires": [
+            [
+                "func_error_gen"
+            ]
+        ]
+    },
+    {
+        "id": "inject_err_clear",
+        "type": "inject",
+        "z": "flow_test",
+        "name": "ALLE LOESCHEN",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "CLEAR_ALL",
+        "payloadType": "str",
+        "x": 150,
+        "y": 860,
+        "wires": [
+            [
+                "func_error_gen"
+            ]
+        ]
+    },
+    {
+        "id": "func_error_gen",
+        "type": "function",
+        "z": "flow_test",
+        "name": "Fehler-Generator",
+        "func": "// Generiert Fehlermeldungen fuer TEST001 mit Toggle-Logik\nconst VEHICLE = 'TEST001';\nconst input = msg.payload;\n\n// Fehler-Status aus Context laden\nlet errorStates = context.get('errorStates') || {};\n\nif (input === 'CLEAR_ALL') {\n    // Alle Fehler loeschen\n    const errors = ['CHECK_ENGINE', 'LOW_OIL', 'BATTERY_LOW', 'TIRE_PRESSURE'];\n    const messages = errors.map(err => {\n        errorStates[err] = false;\n        return {\n            topic: 'smartcar/' + VEHICLE,\n            payload: `error,${VEHICLE},${err},0`\n        };\n    });\n    context.set('errorStates', errorStates);\n    node.status({fill:'green', shape:'dot', text: 'Alle Fehler geloescht'});\n    return [messages];\n}\n\n// Toggle: aktuellen Status umkehren\nconst errorCode = input;\nconst currentState = errorStates[errorCode] || false;\nconst newState = !currentState;\nerrorStates[errorCode] = newState;\ncontext.set('errorStates', errorStates);\n\nconst active = newState ? '1' : '0';\nmsg.topic = 'smartcar/' + VEHICLE;\nmsg.payload = `error,${VEHICLE},${errorCode},${active}`;\n\n// Status anzeigen\nconst activeErrors = Object.entries(errorStates).filter(([k, v]) => v).map(([k]) => k);\nconst color = activeErrors.length > 0 ? 'red' : 'green';\nconst text = activeErrors.length > 0 ? activeErrors.join(', ') : 'Keine Fehler';\nnode.status({fill: color, shape:'dot', text: text});\n\nreturn msg;",
+        "outputs": 1,
+        "x": 470,
+        "y": 760,
+        "wires": [
+            [
+                "mqtt_out_test"
+            ]
+        ]
     },
     {
         "id": "inject_ticker",
         "type": "inject",
         "z": "flow_test",
-        "name": "Ticker 5s",
-        "props": [{"p": "payload"}],
+        "name": "Auto-Ticker 5s",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
         "repeat": "5",
         "crontab": "",
-        "once": false,
-        "onceDelay": 0.1,
+        "once": true,
+        "onceDelay": "1",
         "topic": "",
         "payload": "tick",
         "payloadType": "str",
         "x": 140,
-        "y": 600,
-        "wires": [["func_controller"]]
+        "y": 580,
+        "wires": [
+            [
+                "func_controller"
+            ]
+        ]
     },
     {
         "id": "func_controller",
         "type": "function",
         "z": "flow_test",
         "name": "Controller",
-        "func": "// Simulation Controller\n// Steuert ob die Simulation laeuft oder nicht\n\nconst cmd = msg.payload;\n\nif (cmd === 'start') {\n    flow.set('running', true);\n    flow.set('startTime', Date.now());\n    node.status({fill:'green', shape:'dot', text: 'Laeuft'});\n    node.warn('Simulation gestartet');\n    return null;\n}\n\nif (cmd === 'stop') {\n    flow.set('running', false);\n    const duration = Math.round((Date.now() - (flow.get('startTime') || Date.now())) / 1000);\n    node.status({fill:'red', shape:'ring', text: `Gestoppt (${duration}s)`});\n    node.warn('Simulation gestoppt nach ' + duration + ' Sekunden');\n    return null;\n}\n\nif (cmd === 'tick') {\n    if (flow.get('running')) {\n        return msg;\n    }\n}\n\nreturn null;",
+        "func": "// Simulation Controller\n// Laeuft automatisch, Status und Werte koennen per Button gesetzt werden\n\nconst cmd = msg.payload;\n\n// Manueller Status setzen\nif (cmd === 'set_driving') {\n    flow.set('manual_state', 'driving');\n    node.status({fill:'green', shape:'dot', text: 'Status: driving'});\n    return msg;\n}\nif (cmd === 'set_parked') {\n    flow.set('manual_state', 'parked');\n    node.status({fill:'blue', shape:'dot', text: 'Status: parked'});\n    return msg;\n}\nif (cmd === 'set_error') {\n    flow.set('manual_state', 'error');\n    node.status({fill:'red', shape:'dot', text: 'Status: error'});\n    return msg;\n}\n\n// Manuelle Werte setzen\nif (cmd.startsWith('set_fuel:')) {\n    const value = parseFloat(cmd.split(':')[1]);\n    flow.set('manual_fuel', value);\n    node.status({fill:'orange', shape:'dot', text: 'Tank: ' + value + 'L'});\n    return msg;\n}\nif (cmd.startsWith('set_battery:')) {\n    const value = parseFloat(cmd.split(':')[1]);\n    flow.set('manual_battery', value);\n    node.status({fill:'yellow', shape:'dot', text: 'Batterie: ' + value + 'V'});\n    return msg;\n}\n\n// Tick - immer Daten senden\nif (cmd === 'tick') {\n    const state = flow.get('manual_state') || 'parked';\n    node.status({fill:'green', shape:'dot', text: 'Aktiv: ' + state});\n    return msg;\n}\n\nreturn null;",
         "outputs": 1,
-        "x": 320,
-        "y": 540,
-        "wires": [["func_generator"]]
+        "x": 420,
+        "y": 500,
+        "wires": [
+            [
+                "func_generator"
+            ]
+        ]
     },
     {
         "id": "func_generator",
         "type": "function",
         "z": "flow_test",
-        "name": "Fahrzeug-Simulator",
-        "func": "/**\n * Simuliert realistische Fahrzeugdaten\n * Wechselt zwischen Zustaenden und aendert Werte graduell\n */\n\nconst VEHICLES = ['TEST001', 'TEST002', 'TEST003'];\nconst STATES = ['idle', 'driving', 'charging', 'parked'];\n\n// Fahrzeugkontext laden oder initialisieren\nlet vehicles = context.get('vehicles') || {};\n\n// Zufaelliges Fahrzeug waehlen\nconst vid = VEHICLES[Math.floor(Math.random() * VEHICLES.length)];\n\n// Fahrzeug initialisieren falls nicht vorhanden\nif (!vehicles[vid]) {\n    vehicles[vid] = {\n        fuel: 30 + Math.random() * 30,\n        battery: 12.2 + Math.random() * 1.5,\n        state: STATES[Math.floor(Math.random() * STATES.length)],\n        stateCounter: 0,\n        lat: 52.52 + (Math.random() - 0.5) * 0.1,\n        lon: 13.405 + (Math.random() - 0.5) * 0.1\n    };\n}\n\nconst v = vehicles[vid];\n\n// Zustandswechsel alle 8-15 Zyklen\nv.stateCounter++;\nif (v.stateCounter >= 8 + Math.floor(Math.random() * 7)) {\n    v.stateCounter = 0;\n    const currentIdx = STATES.indexOf(v.state);\n    v.state = STATES[(currentIdx + 1) % STATES.length];\n}\n\n// Werte basierend auf Zustand aendern\nswitch(v.state) {\n    case 'driving':\n        v.fuel = Math.max(5, v.fuel - 0.2 - Math.random() * 0.3);\n        v.battery = Math.max(11.5, v.battery - 0.01 - Math.random() * 0.02);\n        v.lat += (Math.random() - 0.5) * 0.002;\n        v.lon += (Math.random() - 0.5) * 0.002;\n        break;\n    case 'charging':\n        v.fuel = Math.min(60, v.fuel + 0.3 + Math.random() * 0.4);\n        v.battery = Math.min(14.2, v.battery + 0.03 + Math.random() * 0.03);\n        break;\n    case 'idle':\n        v.battery = Math.min(13.8, v.battery + 0.005);\n        break;\n    case 'parked':\n        v.battery = Math.max(12, v.battery - 0.002);\n        break;\n}\n\ncontext.set('vehicles', vehicles);\n\n// Nachricht erstellen\nmsg.topic = 'smartcar/' + vid;\nmsg.payload = `state,${vid},${v.state},${v.fuel.toFixed(1)},${v.battery.toFixed(2)}`;\n\nnode.status({fill:'blue', shape:'dot', text: `${vid}: ${v.state}`});\n\n// Zufaellig auch GPS senden (30% Chance)\nif (Math.random() < 0.3 && v.state === 'driving') {\n    const speed = 30 + Math.floor(Math.random() * 90);\n    const gpsMsg = {\n        topic: 'smartcar/' + vid,\n        payload: `gps,${vid},${v.lat.toFixed(4)},${v.lon.toFixed(4)},${speed}`\n    };\n    return [msg, gpsMsg];\n}\n\nreturn [msg, null];",
+        "name": "TEST001-Simulator",
+        "func": "/**\n * Simuliert Fahrzeugdaten fuer TEST001\n * Status, Tank und Batterie koennen manuell gesetzt werden\n */\n\nconst VEHICLE = 'TEST001';\n\n// Fahrzeugkontext laden oder initialisieren\nlet v = context.get('vehicle') || {\n    fuel: 30 + Math.random() * 30,\n    battery: 12.2 + Math.random() * 1.5,\n    state: 'parked',\n    lat: 52.52 + (Math.random() - 0.5) * 0.1,\n    lon: 13.405 + (Math.random() - 0.5) * 0.1\n};\n\n// Manuelle Werte uebernehmen falls gesetzt\nconst manualState = flow.get('manual_state');\nconst manualFuel = flow.get('manual_fuel');\nconst manualBattery = flow.get('manual_battery');\n\nif (manualState) {\n    v.state = manualState;\n}\nif (manualFuel !== undefined && manualFuel !== null) {\n    v.fuel = manualFuel;\n    flow.set('manual_fuel', null); // Reset nach Uebernahme\n}\nif (manualBattery !== undefined && manualBattery !== null) {\n    v.battery = manualBattery;\n    flow.set('manual_battery', null); // Reset nach Uebernahme\n}\n\n// Werte basierend auf Zustand aendern (nur wenn keine manuellen Werte)\nswitch(v.state) {\n    case 'driving':\n        v.fuel = Math.max(5, v.fuel - 0.2 - Math.random() * 0.3);\n        v.battery = Math.max(11.5, v.battery - 0.01 - Math.random() * 0.02);\n        v.lat += (Math.random() - 0.5) * 0.002;\n        v.lon += (Math.random() - 0.5) * 0.002;\n        break;\n    case 'parked':\n        v.battery = Math.max(12, v.battery - 0.002);\n        break;\n    case 'error':\n        v.battery = Math.max(11, v.battery - 0.01);\n        break;\n}\n\ncontext.set('vehicle', v);\n\n// Nachricht erstellen\nmsg.topic = 'smartcar/' + VEHICLE;\nmsg.payload = `state,${VEHICLE},${v.state},${v.fuel.toFixed(1)},${v.battery.toFixed(2)}`;\n\nnode.status({fill:'blue', shape:'dot', text: `${v.fuel.toFixed(0)}L | ${v.battery.toFixed(1)}V | ${v.state}`});\n\n// GPS senden bei driving (30% Chance)\nif (Math.random() < 0.3 && v.state === 'driving') {\n    const speed = 30 + Math.floor(Math.random() * 90);\n    const gpsMsg = {\n        topic: 'smartcar/' + VEHICLE,\n        payload: `gps,${VEHICLE},${v.lat.toFixed(4)},${v.lon.toFixed(4)},${speed}`\n    };\n    return [msg, gpsMsg];\n}\n\nreturn [msg, null];",
         "outputs": 2,
-        "outputLabels": ["Status", "GPS"],
-        "x": 530,
-        "y": 540,
-        "wires": [["mqtt_out_test"], ["mqtt_out_test"]]
+        "x": 730,
+        "y": 460,
+        "wires": [
+            [
+                "mqtt_out_test"
+            ],
+            [
+                "mqtt_out_test"
+            ]
+        ],
+        "outputLabels": [
+            "Status",
+            "GPS"
+        ]
     },
     {
         "id": "mqtt_out_test",
@@ -380,80 +854,445 @@
         "correl": "",
         "expiry": "",
         "broker": "config_mqtt_internal",
-        "x": 750,
+        "x": 1200,
+        "y": 340,
+        "wires": []
+    },
+    {
+        "id": "comment_alerts_header",
+        "type": "comment",
+        "z": "flow_alerts",
+        "name": "=== SMART-CAR ALERTING SYSTEM ===",
+        "info": "Automatische Benachrichtigungen bei:\n- Tank niedrig\n- Batterie schwach\n- Wartung faellig\n\nKann Termine in Outlook erstellen.",
+        "x": 200,
+        "y": 40,
+        "wires": []
+    },
+    {
+        "id": "mqtt_in_alerts",
+        "type": "mqtt in",
+        "z": "flow_alerts",
+        "name": "Fahrzeugdaten",
+        "topic": "smartcar/+",
+        "qos": "1",
+        "datatype": "utf8",
+        "broker": "config_mqtt_internal",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 120,
+        "y": 120,
+        "wires": [
+            [
+                "func_alert_parser"
+            ]
+        ]
+    },
+    {
+        "id": "func_alert_parser",
+        "type": "function",
+        "z": "flow_alerts",
+        "name": "Daten parsen",
+        "func": "// Parse Fahrzeugdaten\nconst payload = msg.payload.toString().trim();\nconst cols = payload.split(',');\nconst type = cols[0].toLowerCase();\n\n// State-Nachrichten: state,id,status,fuel,battery\nif (type === 'state' && cols.length >= 5) {\n    const topicParts = msg.topic.split('/');\n    msg.vehicle = {\n        id: topicParts[1] || cols[1],\n        state: cols[2],\n        fuel_l: parseFloat(cols[3]),\n        battery_v: parseFloat(cols[4])\n    };\n    node.status({fill:'blue', shape:'dot', text: msg.vehicle.id + ': ' + cols[3] + 'L'});\n    return msg;\n}\n\n// Warning-Nachrichten: warning,id,type,active\nif (type === 'warning' && cols.length >= 4) {\n    const topicParts = msg.topic.split('/');\n    const warnType = cols[2];\n    const active = cols[3] === '1' || cols[3].toLowerCase() === 'true';\n    msg.vehicle = {\n        id: topicParts[1] || cols[1],\n        warnings: {}\n    };\n    msg.vehicle.warnings[warnType] = active;\n    node.status({fill:'yellow', shape:'dot', text: warnType + ': ' + (active ? 'aktiv' : 'inaktiv')});\n    return msg;\n}\n\nreturn null;",
+        "outputs": 1,
+        "x": 290,
+        "y": 120,
+        "wires": [
+            [
+                "func_check_alerts"
+            ]
+        ]
+    },
+    {
+        "id": "func_check_alerts",
+        "type": "function",
+        "z": "flow_alerts",
+        "name": "Regeln pruefen",
+        "func": "// Alert-Regeln mit Prioritaeten pruefen\nconst v = msg.vehicle;\nif (!v) return null;\n\n// Cooldown-Zeiten laden\nlet cooldowns = flow.get('cooldowns') || {};\nconst now = Date.now();\n\n// Prioritaets-Konfiguration\nconst priorities = {\n    critical: { deadline_hours: 1, color: '11' },\n    high: { deadline_hours: 4, color: '6' },\n    medium: { deadline_hours: 24, color: '5' },\n    low: { deadline_hours: 48, color: '9' }\n};\n\nfunction canAlert(alertType, cooldownHours) {\n    const key = v.id + '_' + alertType;\n    const lastAlert = cooldowns[key] || 0;\n    const cooldownMs = cooldownHours * 60 * 60 * 1000;\n    return (now - lastAlert) > cooldownMs;\n}\n\nfunction setCooldown(alertType) {\n    const key = v.id + '_' + alertType;\n    cooldowns[key] = now;\n    flow.set('cooldowns', cooldowns);\n}\n\nconst alerts = [];\n\n// REGEL 1: Kritischer Kraftstoff (< 8L) - CRITICAL\nif (v.fuel_l < 8 && canAlert('critical_fuel', 4)) {\n    alerts.push({\n        type: 'critical_fuel',\n        priority: 'critical',\n        deadline_hours: 1,\n        title: 'DRINGEND: Fahrzeug tanken',\n        message: v.id + ' - Kraftstoff: ' + v.fuel_l.toFixed(1) + ' Liter',\n        vehicle_id: v.id,\n        value: v.fuel_l,\n        duration_minutes: 30\n    });\n    setCooldown('critical_fuel');\n}\n// REGEL 2: Niedriger Kraftstoff (< 15L) - MEDIUM\nelse if (v.fuel_l < 15 && canAlert('low_fuel', 24)) {\n    alerts.push({\n        type: 'low_fuel',\n        priority: 'medium',\n        deadline_hours: 24,\n        title: 'Fahrzeug tanken',\n        message: v.id + ' - Kraftstoff: ' + v.fuel_l.toFixed(1) + ' Liter',\n        vehicle_id: v.id,\n        value: v.fuel_l,\n        duration_minutes: 30\n    });\n    setCooldown('low_fuel');\n}\n\n// REGEL 3: Batterie niedrig (< 11.8V) - MEDIUM\nif (v.battery_v < 11.8 && canAlert('low_battery', 48)) {\n    alerts.push({\n        type: 'low_battery',\n        priority: 'medium',\n        deadline_hours: 24,\n        title: 'Fahrzeugbatterie pruefen',\n        message: v.id + ' - Spannung: ' + v.battery_v.toFixed(2) + 'V',\n        vehicle_id: v.id,\n        value: v.battery_v,\n        duration_minutes: 60\n    });\n    setCooldown('low_battery');\n}\n\n// KONTROLLLEUCHTEN\nif (v.warnings) {\n    if (v.warnings.engine && canAlert('engine_warning', 24)) {\n        alerts.push({\n            type: 'engine_warning',\n            priority: 'high',\n            deadline_hours: 4,\n            title: 'Motordiagnose erforderlich',\n            message: v.id + ' - Motorkontrollleuchte aktiv',\n            vehicle_id: v.id,\n            value: 1,\n            duration_minutes: 60\n        });\n        setCooldown('engine_warning');\n    }\n    if (v.warnings.oil && canAlert('oil_warning', 48)) {\n        alerts.push({\n            type: 'oil_warning',\n            priority: 'low',\n            deadline_hours: 48,\n            title: 'Oelstand pruefen',\n            message: v.id + ' - Oelstandswarnung aktiv',\n            vehicle_id: v.id,\n            value: 1,\n            duration_minutes: 30\n        });\n        setCooldown('oil_warning');\n    }\n    if (v.warnings.abs && canAlert('abs_warning', 24)) {\n        alerts.push({\n            type: 'abs_warning',\n            priority: 'high',\n            deadline_hours: 4,\n            title: 'ABS-System pruefen',\n            message: v.id + ' - ABS-Warnleuchte aktiv',\n            vehicle_id: v.id,\n            value: 1,\n            duration_minutes: 60\n        });\n        setCooldown('abs_warning');\n    }\n    if (v.warnings.airbag && canAlert('airbag_warning', 24)) {\n        alerts.push({\n            type: 'airbag_warning',\n            priority: 'critical',\n            deadline_hours: 1,\n            title: 'DRINGEND: Airbag-System pruefen',\n            message: v.id + ' - Airbag-Warnleuchte aktiv',\n            vehicle_id: v.id,\n            value: 1,\n            duration_minutes: 60\n        });\n        setCooldown('airbag_warning');\n    }\n    if (v.warnings.brake && canAlert('brake_warning', 72)) {\n        alerts.push({\n            type: 'brake_warning',\n            priority: 'high',\n            deadline_hours: 4,\n            title: 'Bremsbelaege pruefen',\n            message: v.id + ' - Bremsenverschleisswarnung',\n            vehicle_id: v.id,\n            value: 1,\n            duration_minutes: 60\n        });\n        setCooldown('brake_warning');\n    }\n    if (v.warnings.tire_pressure && canAlert('tire_pressure', 24)) {\n        alerts.push({\n            type: 'tire_pressure',\n            priority: 'low',\n            deadline_hours: 48,\n            title: 'Reifendruck pruefen',\n            message: v.id + ' - Reifendruckwarnung aktiv',\n            vehicle_id: v.id,\n            value: 1,\n            duration_minutes: 30\n        });\n        setCooldown('tire_pressure');\n    }\n    if (v.warnings.coolant && canAlert('coolant_warning', 4)) {\n        alerts.push({\n            type: 'coolant_warning',\n            priority: 'critical',\n            deadline_hours: 1,\n            title: 'DRINGEND: Kuehlsystem pruefen',\n            message: v.id + ' - Kuehlmitteltemperatur hoch',\n            vehicle_id: v.id,\n            value: 1,\n            duration_minutes: 60\n        });\n        setCooldown('coolant_warning');\n    }\n}\n\nif (alerts.length === 0) {\n    node.status({fill:'green', shape:'dot', text: 'OK'});\n    return null;\n}\n\n// Sortiere nach Prioritaet (critical zuerst)\nconst prioOrder = {critical: 0, high: 1, medium: 2, low: 3};\nalerts.sort((a, b) => prioOrder[a.priority] - prioOrder[b.priority]);\n\nnode.status({fill:'red', shape:'dot', text: alerts.length + ' Alert(s) [' + alerts[0].priority + ']'});\nnode.warn('ALERT: ' + alerts[0].title + ' [' + alerts[0].priority.toUpperCase() + ']');\n\nreturn alerts.map(a => ({payload: a}));",
+        "outputs": 1,
+        "x": 460,
+        "y": 120,
+        "wires": [
+            [
+                "func_create_calendar",
+                "mqtt_out_alert",
+                "debug_alerts"
+            ]
+        ]
+    },
+    {
+        "id": "debug_alerts",
+        "type": "debug",
+        "z": "flow_alerts",
+        "name": "Alerts",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "x": 630,
+        "y": 180,
+        "wires": []
+    },
+    {
+        "id": "mqtt_out_alert",
+        "type": "mqtt out",
+        "z": "flow_alerts",
+        "name": "MQTT Alert",
+        "topic": "smartcar/alerts",
+        "qos": "1",
+        "retain": "false",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "config_mqtt_internal",
+        "x": 650,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "func_create_calendar",
+        "type": "function",
+        "z": "flow_alerts",
+        "name": "Kalender-Event",
+        "func": "// Kalender-Event mit Prioritaet erstellen\nconst alert = msg.payload;\n\n// Prioritaets-Farben fuer Google Calendar\nconst prioColors = {\n    critical: '11',\n    high: '6',\n    medium: '5',\n    low: '9'\n};\n\n// Deadline basierend auf Prioritaet\nconst deadlineHours = alert.deadline_hours || 24;\n\n// Startzeit: Basierend auf Deadline\nconst startTime = new Date();\nstartTime.setHours(startTime.getHours() + deadlineHours);\nstartTime.setMinutes(0, 0, 0);\n\nconst endTime = new Date(startTime);\nendTime.setMinutes(endTime.getMinutes() + (alert.duration_minutes || 30));\n\n// Fahrzeug-Namen aus Context\nconst vehicleNames = flow.get('vehicleNames') || {};\nconst vehicleName = vehicleNames[alert.vehicle_id] || alert.vehicle_id;\n\n// Prioritaet in Titel\nconst prioLabel = {\n    critical: '[KRITISCH] ',\n    high: '[HOCH] ',\n    medium: '',\n    low: ''\n};\nconst prefix = prioLabel[alert.priority] || '';\n\nmsg.payload = {\n    summary: prefix + alert.title,\n    description: alert.message + '\\n\\nFahrzeug: ' + vehicleName + '\\nPrioritaet: ' + (alert.priority || 'medium').toUpperCase() + '\\nDeadline: ' + deadlineHours + ' Stunden\\nTyp: ' + alert.type + '\\n\\nAutomatisch erstellt',\n    start: {\n        dateTime: startTime.toISOString(),\n        timeZone: 'Europe/Berlin'\n    },\n    end: {\n        dateTime: endTime.toISOString(),\n        timeZone: 'Europe/Berlin'\n    },\n    colorId: prioColors[alert.priority] || '9',\n    reminders: {\n        useDefault: false,\n        overrides: [\n            { method: 'popup', minutes: 30 },\n            { method: 'email', minutes: 60 }\n        ]\n    }\n};\n\nflow.set('lastCalendarEvent', msg.payload);\nnode.status({fill:'blue', shape:'dot', text: '[' + (alert.priority || 'medium').toUpperCase() + '] ' + alert.title});\nreturn msg;",
+        "outputs": 1,
+        "x": 690,
+        "y": 120,
+        "wires": [
+            [
+                "google_calendar_api"
+            ]
+        ]
+    },
+    {
+        "id": "google_calendar_api",
+        "type": "http request",
+        "z": "flow_alerts",
+        "name": "Calendar Webhook",
+        "method": "POST",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "http://calendar-webhook:5000/event",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": true,
+        "headers": [],
+        "x": 910,
+        "y": 120,
+        "wires": [
+            [
+                "func_calendar_response"
+            ]
+        ]
+    },
+    {
+        "id": "func_calendar_response",
+        "type": "function",
+        "z": "flow_alerts",
+        "name": "Response",
+        "func": "const result = msg.payload;\n\nif (result && result.success) {\n    node.status({fill:'green', shape:'dot', text: 'Termin erstellt'});\n    node.warn('Kalender-Termin erstellt: ' + (result.link || result.event_id));\n} else if (msg.statusCode === 200 || msg.statusCode === 201) {\n    node.status({fill:'green', shape:'dot', text: 'OK'});\n} else {\n    const error = result ? result.error : 'Fehler';\n    node.status({fill:'yellow', shape:'ring', text: error});\n    node.warn('Kalender: ' + error);\n}\n\nreturn msg;",
+        "outputs": 1,
+        "x": 1120,
+        "y": 120,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "comment_test_alerts",
+        "type": "comment",
+        "z": "flow_alerts",
+        "name": "=== MANUELLES TESTEN ===",
+        "info": "Klicke auf die Buttons um Alerts zu testen",
+        "x": 160,
         "y": 280,
         "wires": []
     },
     {
-        "id": "comment_multi",
-        "type": "comment",
-        "z": "flow_test",
-        "name": "=== MEHRERE FAHRZEUGE ===",
-        "info": "Simulation mit 3 virtuellen Fahrzeugen:\nTEST001, TEST002, TEST003",
+        "id": "inject_test_low_fuel",
+        "type": "inject",
+        "z": "flow_alerts",
+        "name": "Test: Tank niedrig (12L)",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "smartcar/TEST001",
+        "payload": "state,TEST001,parked,12.0,12.8",
+        "payloadType": "str",
+        "x": 170,
+        "y": 340,
+        "wires": [
+            [
+                "func_alert_parser"
+            ]
+        ]
+    },
+    {
+        "id": "inject_test_critical_fuel",
+        "type": "inject",
+        "z": "flow_alerts",
+        "name": "Test: Tank KRITISCH (5L)",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "smartcar/TEST001",
+        "payload": "state,TEST001,parked,5.0,12.8",
+        "payloadType": "str",
         "x": 180,
-        "y": 680,
+        "y": 400,
+        "wires": [
+            [
+                "func_alert_parser"
+            ]
+        ]
+    },
+    {
+        "id": "inject_test_low_battery",
+        "type": "inject",
+        "z": "flow_alerts",
+        "name": "Test: Batterie niedrig (11.5V)",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "smartcar/TEST001",
+        "payload": "state,TEST001,parked,45.0,11.5",
+        "payloadType": "str",
+        "x": 190,
+        "y": 460,
+        "wires": [
+            [
+                "func_alert_parser"
+            ]
+        ]
+    },
+    {
+        "id": "inject_reset_cooldowns",
+        "type": "inject",
+        "z": "flow_alerts",
+        "name": "Cooldowns zuruecksetzen",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "reset",
+        "payloadType": "str",
+        "x": 170,
+        "y": 520,
+        "wires": [
+            [
+                "func_reset_cooldowns"
+            ]
+        ]
+    },
+    {
+        "id": "func_reset_cooldowns",
+        "type": "function",
+        "z": "flow_alerts",
+        "name": "Reset Cooldowns",
+        "func": "flow.set('cooldowns', {});\nnode.status({fill:'green', shape:'dot', text: 'Cooldowns geloescht'});\nnode.warn('Alle Alert-Cooldowns zurueckgesetzt');\nreturn null;",
+        "outputs": 1,
+        "x": 410,
+        "y": 520,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "comment_warning_tests",
+        "type": "comment",
+        "z": "flow_alerts",
+        "name": "=== KONTROLLLEUCHTEN-TESTS ===",
+        "info": "Test-Buttons fuer Warnleuchten",
+        "x": 180,
+        "y": 580,
         "wires": []
     },
     {
-        "id": "inject_multi_start",
+        "id": "inject_test_engine",
         "type": "inject",
-        "z": "flow_test",
-        "name": "ALLE STARTEN",
-        "props": [{"p": "payload"}],
+        "z": "flow_alerts",
+        "name": "Test: Motorleuchte",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
         "repeat": "",
         "crontab": "",
         "once": false,
         "onceDelay": 0.1,
-        "topic": "",
-        "payload": "start_all",
+        "topic": "smartcar/TEST001",
+        "payload": "warning,TEST001,engine,1",
         "payloadType": "str",
-        "x": 160,
-        "y": 740,
-        "wires": [["func_multi_gen"]]
+        "x": 150,
+        "y": 640,
+        "wires": [
+            [
+                "func_alert_parser"
+            ]
+        ]
     },
     {
-        "id": "inject_multi_stop",
+        "id": "inject_test_oil",
         "type": "inject",
-        "z": "flow_test",
-        "name": "ALLE STOPPEN",
-        "props": [{"p": "payload"}],
+        "z": "flow_alerts",
+        "name": "Test: Oelstand",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
         "repeat": "",
         "crontab": "",
         "once": false,
         "onceDelay": 0.1,
-        "topic": "",
-        "payload": "stop_all",
+        "topic": "smartcar/TEST001",
+        "payload": "warning,TEST001,oil,1",
         "payloadType": "str",
-        "x": 160,
-        "y": 800,
-        "wires": [["func_multi_gen"]]
+        "x": 140,
+        "y": 700,
+        "wires": [
+            [
+                "func_alert_parser"
+            ]
+        ]
     },
     {
-        "id": "inject_multi_tick",
+        "id": "inject_test_abs",
         "type": "inject",
-        "z": "flow_test",
-        "name": "Multi-Ticker 3s",
-        "props": [{"p": "payload"}],
-        "repeat": "3",
+        "z": "flow_alerts",
+        "name": "Test: ABS",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
         "crontab": "",
         "once": false,
         "onceDelay": 0.1,
-        "topic": "",
-        "payload": "tick_all",
+        "topic": "smartcar/TEST001",
+        "payload": "warning,TEST001,abs,1",
         "payloadType": "str",
-        "x": 160,
-        "y": 860,
-        "wires": [["func_multi_gen"]]
+        "x": 130,
+        "y": 760,
+        "wires": [
+            [
+                "func_alert_parser"
+            ]
+        ]
     },
     {
-        "id": "func_multi_gen",
-        "type": "function",
-        "z": "flow_test",
-        "name": "Multi-Fahrzeug Generator",
-        "func": "// Generiert Daten fuer mehrere Fahrzeuge gleichzeitig\n\nconst cmd = msg.payload;\n\nif (cmd === 'start_all') {\n    flow.set('multi_running', true);\n    node.status({fill:'green', shape:'dot', text: '3 Fahrzeuge aktiv'});\n    return null;\n}\n\nif (cmd === 'stop_all') {\n    flow.set('multi_running', false);\n    node.status({fill:'red', shape:'ring', text: 'Gestoppt'});\n    return null;\n}\n\nif (cmd === 'tick_all' && flow.get('multi_running')) {\n    const vehicles = ['CAR001', 'CAR002', 'CAR003'];\n    const states = ['idle', 'driving', 'charging', 'parked'];\n    const messages = [];\n    \n    vehicles.forEach(vid => {\n        let v = context.get(vid) || {\n            fuel: 30 + Math.random() * 30,\n            battery: 12 + Math.random() * 2,\n            state: states[Math.floor(Math.random() * 4)]\n        };\n        \n        // Zufaellige Aenderungen\n        if (Math.random() < 0.2) {\n            v.state = states[Math.floor(Math.random() * 4)];\n        }\n        if (v.state === 'driving') {\n            v.fuel = Math.max(5, v.fuel - 0.3);\n        } else if (v.state === 'charging') {\n            v.fuel = Math.min(60, v.fuel + 0.5);\n        }\n        \n        context.set(vid, v);\n        \n        messages.push({\n            topic: 'smartcar/' + vid,\n            payload: `state,${vid},${v.state},${v.fuel.toFixed(1)},${v.battery.toFixed(2)}`\n        });\n    });\n    \n    node.status({fill:'blue', shape:'dot', text: `${messages.length} Nachrichten`});\n    return [messages];\n}\n\nreturn null;",
-        "outputs": 1,
-        "x": 410,
-        "y": 800,
-        "wires": [["mqtt_out_test"]]
+        "id": "inject_test_tire",
+        "type": "inject",
+        "z": "flow_alerts",
+        "name": "Test: Reifendruck",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "smartcar/TEST001",
+        "payload": "warning,TEST001,tire_pressure,1",
+        "payloadType": "str",
+        "x": 150,
+        "y": 820,
+        "wires": [
+            [
+                "func_alert_parser"
+            ]
+        ]
+    },
+    {
+        "id": "inject_test_coolant",
+        "type": "inject",
+        "z": "flow_alerts",
+        "name": "Test: Kuehlmittel",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "smartcar/TEST001",
+        "payload": "warning,TEST001,coolant,1",
+        "payloadType": "str",
+        "x": 150,
+        "y": 880,
+        "wires": [
+            [
+                "func_alert_parser"
+            ]
+        ]
     }
 ]

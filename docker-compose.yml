@@ -28,6 +28,55 @@ services:
         limits:
           memory: 1G
 
+  # Auto-Sync: Lädt Fahrzeug-Stammdaten aus vehicles.json in InfluxDB
+  vehicle-sync:
+    image: python:3.11-slim
+    container_name: vehicle-sync
+    volumes:
+      - ./config:/config
+    environment:
+      - INFLUX_URL=http://influxdb:8086
+      - INFLUX_TOKEN=vehicle-admin-token
+      - INFLUX_ORG=vehicle_org
+      - INFLUX_BUCKET=vehicle_data
+      - VEHICLES_JSON=/config/vehicles.json
+    depends_on:
+      influxdb:
+        condition: service_healthy
+    networks:
+      - smartcar-network
+    command: >
+      sh -c "pip install influxdb-client -q && python /config/auto_sync.py"
+    restart: "no"
+
+  # Google Calendar Webhook: Empfängt Alerts und erstellt Kalender-Termine
+  calendar-webhook:
+    image: python:3.11-slim
+    container_name: calendar-webhook
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./config:/config
+    environment:
+      - GOOGLE_KEY_FILE=/config/google-calendar-key.json
+      - ALERTS_FILE=/config/alerts.json
+      - TZ=Europe/Berlin
+    networks:
+      - smartcar-network
+    command: >
+      sh -c "pip install flask google-api-python-client google-auth -q && python /config/calendar_webhook.py"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
   grafana:
     image: grafana/grafana
     container_name: grafana
@@ -104,6 +153,7 @@ services:
     volumes:
       - ./node-red:/data
       - ./mosquitto/config/certs:/data/certs
+      - ./config:/config
     depends_on:
       mosquitto:
         condition: service_healthy
@@ -121,6 +171,70 @@ services:
       resources:
         limits:
           memory: 256M
+
+  # Wetter Service: OpenWeatherMap API Integration
+  weather-service:
+    image: python:3.11-slim
+    container_name: weather-service
+    restart: unless-stopped
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./config:/config
+    environment:
+      - PORT=5001
+      - OPENWEATHERMAP_API_KEY=${OPENWEATHERMAP_API_KEY:-}
+      - DEFAULT_LAT=49.2354
+      - DEFAULT_LON=6.9958
+      - TZ=Europe/Berlin
+    networks:
+      - smartcar-network
+    command: >
+      sh -c "pip install flask requests -q && python /config/weather_service.py"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  # Trip Processor: Fahrtanalyse und Zusammenfassungen
+  trip-processor:
+    image: python:3.11-slim
+    container_name: trip-processor
+    restart: unless-stopped
+    ports:
+      - "5002:5002"
+    volumes:
+      - ./config:/config
+    environment:
+      - PORT=5002
+      - INFLUXDB_URL=http://influxdb:8086
+      - INFLUXDB_TOKEN=vehicle-admin-token
+      - INFLUXDB_ORG=vehicle_org
+      - INFLUXDB_BUCKET=vehicle_data
+      - TZ=Europe/Berlin
+    depends_on:
+      influxdb:
+        condition: service_healthy
+    networks:
+      - smartcar-network
+    command: >
+      sh -c "pip install flask influxdb-client -q && python /config/trip_processor.py"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 128M
 
 networks:
   smartcar-network:
