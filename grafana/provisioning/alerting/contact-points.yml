@@ -1,0 +1,11 @@
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: Gmail Alert
+    receivers:
+      - uid: gmail_alert_1
+        type: email
+        settings:
+          addresses: stha00005@htwsaar.de
+        disableResolveMessage: false

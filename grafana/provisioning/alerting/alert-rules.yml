@@ -1,0 +1,66 @@
+groups:
+  - name: SmartCar Alerts
+    folder: Notifications
+    interval: 1m
+    rules:
+      - uid: vehicle_error_alert
+        title: Vehicle Error Detection
+        condition: C
+        data:
+          - refId: A
+            queryType: ""
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: influxdb
+            model:
+              datasource:
+                type: influxdb
+                uid: influxdb
+              editorMode: code
+              intervalMs: 60000
+              maxDataPoints: 43200
+              query: |-
+                from(bucket: "vehicle_data")
+                  |> range(start: -10m)
+                  |> filter(fn: (r) => r["_measurement"] == "vehicle_errors")
+                  |> filter(fn: (r) => r["_field"] == "active")
+                  |> filter(fn: (r) => r["_value"] == 1)
+                  |> aggregateWindow(every: 30s, fn: max, createEmpty: false)
+                  |> map(fn: (r) => ({ r with _field: r.error_code }))
+              refId: A
+              resultFormat: time_series
+          - refId: B
+            datasourceUid: -100
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              hide: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+              reducer: last
+              settings:
+                mode: dropNN
+              type: reduce
+          - refId: C
+            datasourceUid: -100
+            model:
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: $B > 0
+              hide: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+              type: math
+        noDataState: NoData
+        execErrState: Alerting
+        for: 1m
+        annotations:
+          description: "Ein Fehler wurde in der Smart Car Telemetrie erkannt (Code: {{ $labels.error_code }})"
+          runbook_url: "https://example.com/runbook"
+          summary: "Smart Car Error Alert - Code {{ $labels.error_code }}"
+        labels:
+          severity: critical

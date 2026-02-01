@@ -18,43 +18,22 @@
         "type": "mqtt-broker",
         "name": "MQTT Broker (Mosquitto)",
         "broker": "mosquitto",
-        "port": "8883",
-        "tls": "6480e75fba3f0df6",
+        "port": "1883",
         "clientid": "nodered-smartcar",
         "autoConnect": true,
-        "usetls": true,
+        "usetls": false,
         "protocolVersion": "4",
         "keepalive": "60",
         "cleansession": true,
-        "autoUnsubscribe": true,
         "birthTopic": "smartcar/system/status",
-        "birthQos": "1",
         "birthPayload": "Node-RED online",
-        "birthMsg": {},
+        "birthQos": "1",
         "closeTopic": "smartcar/system/status",
-        "closeQos": "1",
         "closePayload": "Node-RED offline",
-        "closeMsg": {},
+        "closeQos": "1",
         "willTopic": "smartcar/system/status",
-        "willQos": "1",
         "willPayload": "Node-RED disconnected",
-        "willMsg": {},
-        "userProps": "",
-        "sessionExpiry": ""
-    },
-    {
-        "id": "6480e75fba3f0df6",
-        "type": "tls-config",
-        "name": "TLS-Config",
-        "cert": "",
-        "key": "",
-        "ca": "",
-        "certname": "",
-        "keyname": "",
-        "caname": "ca.crt",
-        "servername": "",
-        "verifyservercert": true,
-        "alpnprotocol": ""
+        "willQos": "1"
     },
     {
         "id": "mqtt_in_vehicles",
@@ -71,27 +50,18 @@
         "inputs": 0,
         "x": 120,
         "y": 100,
-        "wires": [
-            [
-                "func_validate",
-                "debug_raw"
-            ]
-        ]
+        "wires": [["func_validate", "debug_raw"]]
     },
     {
         "id": "func_validate",
         "type": "function",
         "z": "flow_main",
         "name": "Validierung",
-        "func": "// Eingabevalidierung vor Parsing\nlet payload = msg.payload;\n\n// Pruefe ob Payload vorhanden\nif (!payload || payload.length === 0) {\n    node.warn('Leere Nachricht empfangen');\n    node.status({fill:'yellow', shape:'ring', text: 'Leer'});\n    return null;\n}\n\n// Pruefe minimale Laenge (type,vid,...)\nif (payload.length < 10) {\n    node.warn('Nachricht zu kurz: ' + payload);\n    node.status({fill:'yellow', shape:'ring', text: 'Zu kurz'});\n    return null;\n}\n\n// Pruefe auf bekannte Typen\nlet type = payload.split(',')[0].toLowerCase();\nlet validTypes = ['state', 'error', 'trip', 'gps', 'alert'];\n\nif (!validTypes.includes(type)) {\n    node.warn('Unbekannter Typ: ' + type);\n    node.status({fill:'yellow', shape:'ring', text: 'Typ: ' + type});\n    return null;\n}\n\nnode.status({fill:'green', shape:'dot', text: type});\nreturn msg;",
+        "func": "// Eingabevalidierung vor Parsing\nlet payload = msg.payload;\n\n// Pruefe ob Payload vorhanden\nif (!payload || payload.length === 0) {\n    node.warn('Leere Nachricht empfangen');\n    node.status({fill:'yellow', shape:'ring', text: 'Leer'});\n    return null;\n}\n\n// Pruefe minimale Laenge (type,vid,...)\nif (payload.length < 10) {\n    node.warn('Nachricht zu kurz: ' + payload);\n    node.status({fill:'yellow', shape:'ring', text: 'Zu kurz'});\n    return null;\n}\n\n// Pruefe auf bekannte Typen\nlet type = payload.split(',')[0].toLowerCase();\nlet validTypes = ['state', 'error', 'trip', 'gps', 'alert', 'vehicle_errors'];\n\nif (!validTypes.includes(type)) {\n    node.warn('Unbekannter Typ: ' + type);\n    node.status({fill:'yellow', shape:'ring', text: 'Typ: ' + type});\n    return null;\n}\n\nnode.status({fill:'green', shape:'dot', text: type});\nreturn msg;",
         "outputs": 1,
         "x": 290,
         "y": 100,
-        "wires": [
-            [
-                "func_parse_csv"
-            ]
-        ]
+        "wires": [["func_parse_csv"]]
     },
     {
         "id": "debug_raw",
@@ -114,26 +84,10 @@
         "name": "CSV Parser",
         "func": "/**\n * CSV zu InfluxDB Line Protocol Konverter\n * \n * Unterstuetzte Formate:\n * - state,VID,state_name,fuel,battery\n * - error,VID,error_code,active\n * - trip,VID,trip_id,duration,fuel_used,max_acc,max_brake\n * - gps,VID,lat,lon,speed\n * - alert,VID,alert_type,message\n */\n\nconst topicParts = msg.topic.split('/');\nconst vehicle_id = topicParts[1] || 'UNKNOWN';\nconst cols = msg.payload.toString().trim().split(',');\nconst type = cols[0].toLowerCase();\nconst ts = Date.now() * 1000000; // Nanosekunden\n\nlet line = '';\nlet success = false;\n\ntry {\n    switch(type) {\n        case 'state': {\n            if (cols.length < 5) throw new Error('state braucht 5 Felder');\n            const state = (cols[2] || 'unknown').replace(/[^a-zA-Z0-9]/g, '');\n            const fuel = parseFloat(cols[3]);\n            const battery = parseFloat(cols[4]);\n            \n            if (isNaN(fuel) || isNaN(battery)) throw new Error('Ungueltige Zahlenwerte');\n            if (fuel < 0 || fuel > 100) throw new Error('Kraftstoff ausserhalb Bereich');\n            if (battery < 0 || battery > 20) throw new Error('Batterie ausserhalb Bereich');\n            \n            line = `vehicle_state,vehicle_id=${vehicle_id},state=${state} fuel_l=${fuel},battery_v=${battery},online=1i ${ts}`;\n            success = true;\n            break;\n        }\n        case 'error': {\n            if (cols.length < 4) throw new Error('error braucht 4 Felder');\n            const error_code = cols[2].replace(/[^a-zA-Z0-9_]/g, '');\n            const active = parseInt(cols[3]) === 1 ? 1 : 0;\n            \n            line = `vehicle_errors,vehicle_id=${vehicle_id},error_code=${error_code} active=${active}i ${ts}`;\n            success = true;\n            break;\n        }\n        case 'trip': {\n            if (cols.length < 7) throw new Error('trip braucht 7 Felder');\n            const trip_id = cols[2].replace(/[^a-zA-Z0-9_]/g, '');\n            const duration = parseInt(cols[3]) || 0;\n            const fuel_used = parseFloat(cols[4]) || 0;\n            const max_acc = parseFloat(cols[5]) || 0;\n            const max_brake = parseFloat(cols[6]) || 0;\n            \n            line = `trip_summary,vehicle_id=${vehicle_id},trip_id=${trip_id} duration_s=${duration}i,fuel_used=${fuel_used},max_acceleration=${max_acc},max_braking=${max_brake} ${ts}`;\n            success = true;\n            break;\n        }\n        case 'gps': {\n            if (cols.length < 5) throw new Error('gps braucht 5 Felder');\n            const lat = parseFloat(cols[2]);\n            const lon = parseFloat(cols[3]);\n            const speed = parseFloat(cols[4]) || 0;\n            \n            if (isNaN(lat) || isNaN(lon)) throw new Error('Ungueltige GPS-Koordinaten');\n            if (lat < -90 || lat > 90) throw new Error('Breitengrad ausserhalb Bereich');\n            if (lon < -180 || lon > 180) throw new Error('Laengengrad ausserhalb Bereich');\n            \n            line = `vehicle_gps,vehicle_id=${vehicle_id} latitude=${lat},longitude=${lon},speed_kmh=${speed} ${ts}`;\n            success = true;\n            break;\n        }\n        case 'alert': {\n            if (cols.length < 3) throw new Error('alert braucht min. 3 Felder');\n            const alert_type = cols[2].replace(/[^a-zA-Z0-9_]/g, '');\n            const alert_msg = (cols[3] || '').replace(/\"/g, \"'\");\n            \n            line = `alerts,vehicle_id=${vehicle_id},alert_type=${alert_type} message=\"${alert_msg}\" ${ts}`;\n            success = true;\n            break;\n        }\n        default:\n            throw new Error('Unbekannter Typ: ' + type);\n    }\n    \n    if (success) {\n        msg.payload = line;\n        msg.headers = {\n            'Authorization': 'Token vehicle-admin-token',\n            'Content-Type': 'text/plain; charset=utf-8'\n        };\n        msg._parsed = { type, vehicle_id, timestamp: ts };\n        node.status({fill:'green', shape:'dot', text: `${type} ${vehicle_id}`});\n        return [msg, null];\n    }\n    \n} catch(e) {\n    node.error('Parse-Fehler: ' + e.message, msg);\n    node.status({fill:'red', shape:'ring', text: e.message});\n    msg.error = e.message;\n    return [null, msg];\n}\n\nreturn null;",
         "outputs": 2,
-        "timeout": "",
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
+        "outputLabels": ["Erfolg", "Fehler"],
         "x": 430,
         "y": 100,
-        "wires": [
-            [
-                "http_influx",
-                "debug_line"
-            ],
-            [
-                "debug_error"
-            ]
-        ],
-        "outputLabels": [
-            "Erfolg",
-            "Fehler"
-        ]
+        "wires": [["http_influx", "debug_line"], ["debug_error"]]
     },
     {
         "id": "debug_line",
@@ -181,11 +135,7 @@
         "headers": [],
         "x": 600,
         "y": 100,
-        "wires": [
-            [
-                "func_check_response"
-            ]
-        ]
+        "wires": [["func_check_response"]]
     },
     {
         "id": "func_check_response",
@@ -194,20 +144,10 @@
         "name": "Response Check",
         "func": "const statusCode = msg.statusCode;\n\nif (statusCode === 204) {\n    // Erfolg - InfluxDB gibt 204 bei erfolgreichem Schreiben\n    node.status({fill:'green', shape:'dot', text: 'OK'});\n    return [msg, null];\n} else if (statusCode >= 400) {\n    // Fehler\n    node.error(`InfluxDB Fehler ${statusCode}: ${msg.payload}`, msg);\n    node.status({fill:'red', shape:'ring', text: `Fehler ${statusCode}`});\n    return [null, msg];\n} else {\n    node.status({fill:'yellow', shape:'ring', text: `Code ${statusCode}`});\n    return [msg, null];\n}",
         "outputs": 2,
+        "outputLabels": ["Erfolg", "Fehler"],
         "x": 800,
         "y": 100,
-        "wires": [
-            [
-                "debug_success"
-            ],
-            [
-                "debug_influx_error"
-            ]
-        ],
-        "outputLabels": [
-            "Erfolg",
-            "Fehler"
-        ]
+        "wires": [["debug_success"], ["debug_influx_error"]]
     },
     {
         "id": "debug_success",
@@ -262,15 +202,7 @@
         "type": "inject",
         "z": "flow_test",
         "name": "Status",
-        "props": [
-            {
-                "p": "payload"
-            },
-            {
-                "p": "topic",
-                "vt": "str"
-            }
-        ],
+        "props": [{"p": "payload"}, {"p": "topic", "vt": "str"}],
         "repeat": "",
         "crontab": "",
         "once": false,
@@ -280,26 +212,14 @@
         "payloadType": "str",
         "x": 130,
         "y": 100,
-        "wires": [
-            [
-                "mqtt_out_test"
-            ]
-        ]
+        "wires": [["mqtt_out_test"]]
     },
     {
         "id": "inject_error",
         "type": "inject",
         "z": "flow_test",
         "name": "Fehler",
-        "props": [
-            {
-                "p": "payload"
-            },
-            {
-                "p": "topic",
-                "vt": "str"
-            }
-        ],
+        "props": [{"p": "payload"}, {"p": "topic", "vt": "str"}],
         "repeat": "",
         "crontab": "",
         "once": false,
@@ -309,26 +229,14 @@
         "payloadType": "str",
         "x": 130,
         "y": 160,
-        "wires": [
-            [
-                "mqtt_out_test"
-            ]
-        ]
+        "wires": [["mqtt_out_test"]]
     },
     {
         "id": "inject_trip",
         "type": "inject",
         "z": "flow_test",
         "name": "Fahrt",
-        "props": [
-            {
-                "p": "payload"
-            },
-            {
-                "p": "topic",
-                "vt": "str"
-            }
-        ],
+        "props": [{"p": "payload"}, {"p": "topic", "vt": "str"}],
         "repeat": "",
         "crontab": "",
         "once": false,
@@ -338,26 +246,14 @@
         "payloadType": "str",
         "x": 130,
         "y": 220,
-        "wires": [
-            [
-                "mqtt_out_test"
-            ]
-        ]
+        "wires": [["mqtt_out_test"]]
     },
     {
         "id": "inject_alert",
         "type": "inject",
         "z": "flow_test",
         "name": "Alarm",
-        "props": [
-            {
-                "p": "payload"
-            },
-            {
-                "p": "topic",
-                "vt": "str"
-            }
-        ],
+        "props": [{"p": "payload"}, {"p": "topic", "vt": "str"}],
         "repeat": "",
         "crontab": "",
         "once": false,
@@ -367,26 +263,14 @@
         "payloadType": "str",
         "x": 130,
         "y": 280,
-        "wires": [
-            [
-                "mqtt_out_test"
-            ]
-        ]
+        "wires": [["mqtt_out_test"]]
     },
     {
         "id": "inject_gps",
         "type": "inject",
         "z": "flow_test",
         "name": "GPS",
-        "props": [
-            {
-                "p": "payload"
-            },
-            {
-                "p": "topic",
-                "vt": "str"
-            }
-        ],
+        "props": [{"p": "payload"}, {"p": "topic", "vt": "str"}],
         "repeat": "",
         "crontab": "",
         "once": false,
@@ -396,11 +280,7 @@
         "payloadType": "str",
         "x": 130,
         "y": 340,
-        "wires": [
-            [
-                "mqtt_out_test"
-            ]
-        ]
+        "wires": [["mqtt_out_test"]]
     },
     {
         "id": "comment_sim",
@@ -417,11 +297,7 @@
         "type": "inject",
         "z": "flow_test",
         "name": "START",
-        "props": [
-            {
-                "p": "payload"
-            }
-        ],
+        "props": [{"p": "payload"}],
         "repeat": "",
         "crontab": "",
         "once": false,
@@ -431,22 +307,14 @@
         "payloadType": "str",
         "x": 130,
         "y": 480,
-        "wires": [
-            [
-                "func_controller"
-            ]
-        ]
+        "wires": [["func_controller"]]
     },
     {
         "id": "inject_stop",
         "type": "inject",
         "z": "flow_test",
         "name": "STOP",
-        "props": [
-            {
-                "p": "payload"
-            }
-        ],
+        "props": [{"p": "payload"}],
         "repeat": "",
         "crontab": "",
         "once": false,
@@ -456,22 +324,14 @@
         "payloadType": "str",
         "x": 130,
         "y": 540,
-        "wires": [
-            [
-                "func_controller"
-            ]
-        ]
+        "wires": [["func_controller"]]
     },
     {
         "id": "inject_ticker",
         "type": "inject",
         "z": "flow_test",
         "name": "Ticker 5s",
-        "props": [
-            {
-                "p": "payload"
-            }
-        ],
+        "props": [{"p": "payload"}],
         "repeat": "5",
         "crontab": "",
         "once": false,
@@ -481,11 +341,7 @@
         "payloadType": "str",
         "x": 140,
         "y": 600,
-        "wires": [
-            [
-                "func_controller"
-            ]
-        ]
+        "wires": [["func_controller"]]
     },
     {
         "id": "func_controller",
@@ -496,11 +352,7 @@
         "outputs": 1,
         "x": 320,
         "y": 540,
-        "wires": [
-            [
-                "func_generator"
-            ]
-        ]
+        "wires": [["func_generator"]]
     },
     {
         "id": "func_generator",
@@ -509,20 +361,10 @@
         "name": "Fahrzeug-Simulator",
         "func": "/**\n * Simuliert realistische Fahrzeugdaten\n * Wechselt zwischen Zustaenden und aendert Werte graduell\n */\n\nconst VEHICLES = ['TEST001', 'TEST002', 'TEST003'];\nconst STATES = ['idle', 'driving', 'charging', 'parked'];\n\n// Fahrzeugkontext laden oder initialisieren\nlet vehicles = context.get('vehicles') || {};\n\n// Zufaelliges Fahrzeug waehlen\nconst vid = VEHICLES[Math.floor(Math.random() * VEHICLES.length)];\n\n// Fahrzeug initialisieren falls nicht vorhanden\nif (!vehicles[vid]) {\n    vehicles[vid] = {\n        fuel: 30 + Math.random() * 30,\n        battery: 12.2 + Math.random() * 1.5,\n        state: STATES[Math.floor(Math.random() * STATES.length)],\n        stateCounter: 0,\n        lat: 52.52 + (Math.random() - 0.5) * 0.1,\n        lon: 13.405 + (Math.random() - 0.5) * 0.1\n    };\n}\n\nconst v = vehicles[vid];\n\n// Zustandswechsel alle 8-15 Zyklen\nv.stateCounter++;\nif (v.stateCounter >= 8 + Math.floor(Math.random() * 7)) {\n    v.stateCounter = 0;\n    const currentIdx = STATES.indexOf(v.state);\n    v.state = STATES[(currentIdx + 1) % STATES.length];\n}\n\n// Werte basierend auf Zustand aendern\nswitch(v.state) {\n    case 'driving':\n        v.fuel = Math.max(5, v.fuel - 0.2 - Math.random() * 0.3);\n        v.battery = Math.max(11.5, v.battery - 0.01 - Math.random() * 0.02);\n        v.lat += (Math.random() - 0.5) * 0.002;\n        v.lon += (Math.random() - 0.5) * 0.002;\n        break;\n    case 'charging':\n        v.fuel = Math.min(60, v.fuel + 0.3 + Math.random() * 0.4);\n        v.battery = Math.min(14.2, v.battery + 0.03 + Math.random() * 0.03);\n        break;\n    case 'idle':\n        v.battery = Math.min(13.8, v.battery + 0.005);\n        break;\n    case 'parked':\n        v.battery = Math.max(12, v.battery - 0.002);\n        break;\n}\n\ncontext.set('vehicles', vehicles);\n\n// Nachricht erstellen\nmsg.topic = 'smartcar/' + vid;\nmsg.payload = `state,${vid},${v.state},${v.fuel.toFixed(1)},${v.battery.toFixed(2)}`;\n\nnode.status({fill:'blue', shape:'dot', text: `${vid}: ${v.state}`});\n\n// Zufaellig auch GPS senden (30% Chance)\nif (Math.random() < 0.3 && v.state === 'driving') {\n    const speed = 30 + Math.floor(Math.random() * 90);\n    const gpsMsg = {\n        topic: 'smartcar/' + vid,\n        payload: `gps,${vid},${v.lat.toFixed(4)},${v.lon.toFixed(4)},${speed}`\n    };\n    return [msg, gpsMsg];\n}\n\nreturn [msg, null];",
         "outputs": 2,
+        "outputLabels": ["Status", "GPS"],
         "x": 530,
         "y": 540,
-        "wires": [
-            [
-                "mqtt_out_test"
-            ],
-            [
-                "mqtt_out_test"
-            ]
-        ],
-        "outputLabels": [
-            "Status",
-            "GPS"
-        ]
+        "wires": [["mqtt_out_test"], ["mqtt_out_test"]]
     },
     {
         "id": "mqtt_out_test",
@@ -557,11 +399,7 @@
         "type": "inject",
         "z": "flow_test",
         "name": "ALLE STARTEN",
-        "props": [
-            {
-                "p": "payload"
-            }
-        ],
+        "props": [{"p": "payload"}],
         "repeat": "",
         "crontab": "",
         "once": false,
@@ -571,22 +409,14 @@
         "payloadType": "str",
         "x": 160,
         "y": 740,
-        "wires": [
-            [
-                "func_multi_gen"
-            ]
-        ]
+        "wires": [["func_multi_gen"]]
     },
     {
         "id": "inject_multi_stop",
         "type": "inject",
         "z": "flow_test",
         "name": "ALLE STOPPEN",
-        "props": [
-            {
-                "p": "payload"
-            }
-        ],
+        "props": [{"p": "payload"}],
         "repeat": "",
         "crontab": "",
         "once": false,
@@ -596,22 +426,14 @@
         "payloadType": "str",
         "x": 160,
         "y": 800,
-        "wires": [
-            [
-                "func_multi_gen"
-            ]
-        ]
+        "wires": [["func_multi_gen"]]
     },
     {
         "id": "inject_multi_tick",
         "type": "inject",
         "z": "flow_test",
         "name": "Multi-Ticker 3s",
-        "props": [
-            {
-                "p": "payload"
-            }
-        ],
+        "props": [{"p": "payload"}],
         "repeat": "3",
         "crontab": "",
         "once": false,
@@ -621,11 +443,7 @@
         "payloadType": "str",
         "x": 160,
         "y": 860,
-        "wires": [
-            [
-                "func_multi_gen"
-            ]
-        ]
+        "wires": [["func_multi_gen"]]
     },
     {
         "id": "func_multi_gen",
@@ -636,10 +454,6 @@
         "outputs": 1,
         "x": 410,
         "y": 800,
-        "wires": [
-            [
-                "mqtt_out_test"
-            ]
-        ]
+        "wires": [["mqtt_out_test"]]
     }
 ]
