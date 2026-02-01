@@ -1,0 +1,1 @@
+vehicle_info,vehicle_id=F001 display_name="Transporter1",license_plate="B-SC-001",model="VW-Transporter",color="weiss",vin="WV2ZZZ7HZ1H123456"

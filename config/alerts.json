@@ -1,0 +1,189 @@
+{
+  "alerts": {
+    "critical_fuel": {
+      "enabled": true,
+      "threshold": 8,
+      "priority": "critical",
+      "deadline_hours": 1,
+      "message": "Kraftstoff kritisch",
+      "calendar_title": "DRINGEND: Fahrzeug tanken",
+      "calendar_duration_minutes": 30,
+      "cooldown_hours": 4
+    },
+    "low_fuel": {
+      "enabled": true,
+      "threshold": 15,
+      "priority": "medium",
+      "deadline_hours": 24,
+      "message": "Kraftstoff niedrig",
+      "calendar_title": "Fahrzeug tanken",
+      "calendar_duration_minutes": 30,
+      "cooldown_hours": 24
+    },
+    "low_battery": {
+      "enabled": true,
+      "threshold": 11.8,
+      "priority": "medium",
+      "deadline_hours": 24,
+      "message": "Batteriespannung niedrig",
+      "calendar_title": "Fahrzeugbatterie pruefen",
+      "calendar_duration_minutes": 60,
+      "cooldown_hours": 48
+    },
+    "maintenance_reminder": {
+      "enabled": true,
+      "interval_km": 15000,
+      "priority": "low",
+      "deadline_hours": 168,
+      "message": "Inspektion faellig",
+      "calendar_title": "Fahrzeugwartung durchfuehren",
+      "calendar_duration_minutes": 120,
+      "cooldown_hours": 168
+    },
+    "engine_warning": {
+      "enabled": true,
+      "priority": "high",
+      "deadline_hours": 4,
+      "message": "Motorkontrollleuchte aktiv",
+      "calendar_title": "Motordiagnose erforderlich",
+      "calendar_duration_minutes": 60,
+      "cooldown_hours": 24
+    },
+    "oil_warning": {
+      "enabled": true,
+      "threshold": 20,
+      "priority": "low",
+      "deadline_hours": 48,
+      "message": "Oelstand niedrig",
+      "calendar_title": "Oelstand pruefen",
+      "calendar_duration_minutes": 30,
+      "cooldown_hours": 48
+    },
+    "tire_pressure": {
+      "enabled": true,
+      "threshold": 1.8,
+      "priority": "low",
+      "deadline_hours": 48,
+      "message": "Reifendruck niedrig",
+      "calendar_title": "Reifendruck pruefen",
+      "calendar_duration_minutes": 30,
+      "cooldown_hours": 24
+    },
+    "coolant_warning": {
+      "enabled": true,
+      "threshold": 100,
+      "priority": "critical",
+      "deadline_hours": 1,
+      "message": "Kuehlmitteltemperatur hoch",
+      "calendar_title": "DRINGEND: Kuehlsystem pruefen",
+      "calendar_duration_minutes": 60,
+      "cooldown_hours": 4
+    },
+    "abs_warning": {
+      "enabled": true,
+      "priority": "high",
+      "deadline_hours": 4,
+      "message": "ABS-Warnleuchte aktiv",
+      "calendar_title": "ABS-System pruefen",
+      "calendar_duration_minutes": 60,
+      "cooldown_hours": 24
+    },
+    "airbag_warning": {
+      "enabled": true,
+      "priority": "critical",
+      "deadline_hours": 1,
+      "message": "Airbag-Warnleuchte aktiv",
+      "calendar_title": "DRINGEND: Airbag-System pruefen",
+      "calendar_duration_minutes": 60,
+      "cooldown_hours": 24
+    },
+    "brake_warning": {
+      "enabled": true,
+      "priority": "high",
+      "deadline_hours": 4,
+      "message": "Bremsbelagverschleiss",
+      "calendar_title": "Bremsbelaege pruefen",
+      "calendar_duration_minutes": 60,
+      "cooldown_hours": 72
+    },
+    "hard_acceleration": {
+      "enabled": true,
+      "threshold": 0.4,
+      "priority": "low",
+      "deadline_hours": 168,
+      "message": "Starke Beschleunigung erkannt",
+      "calendar_title": "Fahrverhalten analysieren",
+      "calendar_duration_minutes": 30,
+      "cooldown_hours": 24
+    },
+    "hard_braking": {
+      "enabled": true,
+      "threshold": 0.4,
+      "priority": "low",
+      "deadline_hours": 168,
+      "message": "Starke Bremsung erkannt",
+      "calendar_title": "Fahrverhalten analysieren",
+      "calendar_duration_minutes": 30,
+      "cooldown_hours": 24
+    },
+    "hard_cornering": {
+      "enabled": true,
+      "threshold": 0.4,
+      "priority": "low",
+      "deadline_hours": 168,
+      "message": "Scharfe Kurvenfahrt erkannt",
+      "calendar_title": "Fahrverhalten analysieren",
+      "calendar_duration_minutes": 30,
+      "cooldown_hours": 24
+    }
+  },
+  "imu_thresholds": {
+    "hard_acceleration_g": 0.4,
+    "hard_braking_g": 0.4,
+    "hard_cornering_g": 0.4,
+    "collision_detection_g": 2.0
+  },
+  "weather_integration": {
+    "enabled": true,
+    "service_url": "http://weather-service:5001",
+    "frost_warning_threshold_c": 3,
+    "heat_warning_threshold_c": 35
+  },
+  "priority_config": {
+    "critical": {
+      "deadline_hours": 1,
+      "color": "11",
+      "prefix": "DRINGEND: "
+    },
+    "high": {
+      "deadline_hours": 4,
+      "color": "6",
+      "prefix": ""
+    },
+    "medium": {
+      "deadline_hours": 24,
+      "color": "5",
+      "prefix": ""
+    },
+    "low": {
+      "deadline_hours": 48,
+      "color": "9",
+      "prefix": ""
+    }
+  },
+  "google_calendar": {
+    "enabled": true,
+    "key_file": "/config/google-calendar-key.json",
+    "calendar_id": "iotwssmartcar@gmail.com"
+  },
+  "notifications": {
+    "email": {
+      "enabled": false,
+      "recipients": ["your-email@example.com"]
+    },
+    "mqtt": {
+      "enabled": true,
+      "topic": "smartcar/alerts"
+    }
+  }
+}

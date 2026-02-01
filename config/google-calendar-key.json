@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "smart-car-486112",
+  "private_key_id": "971e2c6dc04490b3da5fb42fe57027c01de01da3",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEugIBADANBgkqhkiG9w0BAQEFAASCBKQwggSgAgEAAoIBAQDhtGw1ucpVsjnr\nPEe7dPiv2sTD3TqR5t28AwP6MKpYPszfL+xx/jz/t6ioqo0feygHILMA6UQpPmEg\n5uH/NfZd1jxFBcZ06XJbFWdia0n3YLVXI/acpnNhI6PtG03RxMjcfpppTjt7eQFJ\nJsUEghdzHw79H7pEr3qZN+FsxVXuQ5qItxg9glbIaEvLaWd1Ek0r3VKxYnMADZBd\njtnYuEtEpcD1DO5Lj/OoKm5gfXQpJmp3Z6BOSgsLjAG1L4f4dV7w2R6rMtBV8vYg\nMiRmmKMd6EJgTQkSvi7vSK/t1RzAZaxfBo1zFqTEu80XN8BsjsrIJKnKZ3G6PMay\nJT2ujR9RAgMBAAECgf8jJ9czBx1c+8XJvjnuGOojeg/r8imNUEh5YH7eGXZvCFkg\n6nYJy2/05MaAfxA8NxKlCZLYMX1Mb0rxtQS+m8kkFJqOpbejvjjxtwPDcLK0tXuJ\ndzCSddrC5qpB5F7arawbrByhCm55bP+mRUOq0BiW9d9/zdFVoX+XHf0e1B3uXo5b\nyo+1x3owwwywNYJhGFzL3eEdeCxotwGH3VdG3ZtWma+imWPq6WhEKEaB3V3quZ5M\naSGDSpalAez388Z5cG1T5P9uux7V2cjfH8hEFHui+ABd1gFqYo0AwazuQlnItDZe\nFs1qzyAmXz5SZKuNOO3/e53PCgO4B/44h9G82gECgYEA/Bm/P537jFXjmUIrS4Xa\neetB4zfgHfyFUfaEALV4837j5GzWu0eyhRJu2psJX5XFyjJkgTsrB58+Hu57fRaW\n8AD8Qj9p16mjqTGPY6q0qFhVNMtxmvLBWaPwxqQ6ydeY+MEqqfOnEwK1SYCw/Dql\nIjJLWLxizSW3sckZ6okydwECgYEA5TIntU3kSKK879iiwkoIh7XoJpAly8M+9WcS\nF6C3qeyNisT52Qa9pzkHjEtgBe14eZkW1bwlleQQccavRFTbDbmimIP/M6IP7zdy\nasTMtsXiau1f3Nx6PYmSJq5V6LN7q+9ia+I7IauSCFyru7ifJSoSXNM9Joj9s8sz\nMVLNeFECgYBVwxCLvNvxbtqhrZ/67ktXxI/Ck6SbrudP7dQURagi9dzjPZ+DUK3L\nlWy+05VJvjLuSVxlllJaInNIpIrAECpC9aLbiqUgJ+a0TVbhahZRWtOJxVgdhU3/\nh8UGXqJdPgodPeGctXX2AqrXmX8cH3tD+eYmBth5v8YRJj+5yPixAQKBgHDVaEcR\nubkopOtPM5GC8QAexdN2U6Uk0fHudDG9pa26D1Sp9HarouKYaObglL1WU2FJxLwk\njDxmstHQhqiVPeJb6Xg8Q38f4cha+7EkgcPZV8ZcZj1NLcDt4U25tgGBmvjiOQnz\nrji9Rn9nYARit7aMJ84bEJfQCVZiSymVIiKBAoGActm5A2BB2L0slrQLP+X6ty90\nD/TnS5pi3Z4ASiEggDn6FRx4MI2PBDLmvk8hL/zO/qMHqNTFhIwC5Lac3uUey/TC\nSIca0wpP38Yfda+/vYqwg073KTXz4Upq6yZpVjV/iDGuuZCvtBu1bAyHCi+YX2xD\n6k0A+BGgsMVgx0lUtoU=\n-----END PRIVATE KEY-----\n",
+  "client_email": "smart-car-calender@smart-car-486112.iam.gserviceaccount.com",
+  "client_id": "114125105865038118609",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/smart-car-calender%40smart-car-486112.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
