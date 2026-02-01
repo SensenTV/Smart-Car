@@ -40,33 +40,37 @@ Das Smart-Car System folgt einer **ereignisgesteuerten Microservice-Architektur*
 | **Verarbeitung** | Node-RED | 3.x | ETL und Alarmierung |
 | **Speicherung** | InfluxDB | 2.x | Zeitreihendatenbank |
 | **Visualisierung** | Grafana | 10.x+ | Dashboards |
+| **Integration** | Google Calendar | v3 | Kalender-Integration |
+| **Backend** | Python/Flask | 3.11 | Calendar Webhook Server |
+| **Sync** | Python Scripts | 3.11 | Fahrzeugdaten-Synchronisation |
 | **Orchestrierung** | Docker Compose | 3.8 | Container-Management |
 
 ### 1.3 Netzwerk-Topologie
 
 ```
-+-------------------------------------------------------------+
-|                    Docker Network                           |
-|                  (smartcar-network)                         |
-|                                                             |
-|  +-----------+   +-----------+   +-----------+             |
-|  | mosquitto |   |  node-red |   | influxdb  |             |
-|  |  :1883    |<--|   :1880   |-->|  :8086    |             |
-|  |  :8883    |   +-----------+   +-----+-----+             |
-|  +-----+-----+                         |                    |
-|        |                               |                    |
-|        |                         +-----v-----+             |
-|        |                         |  grafana  |             |
-|        |                         |  :3001    |             |
-|        |                         +-----------+             |
-+---------+---------------------------------------------------+
-          |
-          | Port 8883 (TLS)
-          v
-   +-----------+
-   |   ESP32   |
-   |  Devices  |
-   +-----------+
++-------------------------------------------------------------------------+
+|                         Docker Network                                   |
+|                       (smartcar-network)                                 |
+|                                                                          |
+|  +-----------+   +-----------+   +-----------+   +----------------+     |
+|  | mosquitto |   |  node-red |   | influxdb  |   | calendar-      |     |
+|  |  :1883    |<--|   :1880   |-->|  :8086    |   | webhook :5000  |     |
+|  |  :8883    |   +-----+-----+   +-----+-----+   +--------^-------+     |
+|  +-----+-----+         |               |                  |              |
+|        |               |               |                  |              |
+|        |               v               v                  |              |
+|        |         +-----+-----+   +-----v-----+            |              |
+|        |         | vehicle-  |   |  grafana  |            |              |
+|        |         | sync      |   |  :3001    |            |              |
+|        |         +-----------+   +-----------+            |              |
++--------+-------------------------------------------------+--------------+
+         |                                                  |
+         | Port 8883 (TLS)                           HTTP Webhook
+         v                                                  |
+  +-----------+                                             v
+  |   ESP32   |                                   Google Calendar API
+  |  Devices  |
+  +-----------+
 ```
 
 ---
@@ -143,9 +147,60 @@ grafana/provisioning/
 |   |-- dashboards.yml         # Dashboard-Provider
 |   |-- main-dashboard.json    # Hauptuebersicht
 |   +-- vehicle-detail-dashboard.json
-+-- datasources/
-    +-- datasources.yml        # Datenquellen
+|-- datasources/
+|   +-- datasources.yml        # Datenquellen
++-- alerting/
+    |-- alert-rules.yml        # Alert-Regeln
+    |-- contact-points.yml     # Benachrichtigungsziele
+    +-- notification-policies.yml  # Benachrichtigungsrichtlinien
 ```
+
+### 2.5 Calendar Webhook Server
+
+**Funktion**: Google Calendar Integration fuer Alerts und Termine
+
+**Technologie**: Python 3.11 + Flask
+
+**Konfiguration**:
+- Service Account Key: `/config/google-calendar-key.json`
+- Alerts Config: `/config/alerts.json`
+- Port: 5000
+
+**API-Endpunkte**:
+| Endpoint | Methode | Beschreibung |
+|----------|---------|--------------|
+| `/health` | GET | Health Check |
+| `/event` | POST | Kalendereintrag erstellen |
+| `/test` | GET | Test-Event erstellen |
+
+**Anforderungen**:
+- Google Cloud Service Account mit Calendar API-Berechtigung
+- Kalender muss mit Service Account geteilt sein
+
+### 2.6 Vehicle Sync Service
+
+**Funktion**: Periodische Synchronisation von Fahrzeugdaten mit InfluxDB
+
+**Technologie**: Python 3.11
+
+**Konfiguration** (`config/vehicles.json`):
+```json
+{
+  "vehicles": [
+    {
+      "id": "F001",
+      "name": "Fahrzeug 1",
+      "fuel_capacity": 60.0,
+      "battery_nominal": 12.0
+    }
+  ]
+}
+```
+
+**Funktionalitaet**:
+- Liest Fahrzeugkonfiguration aus JSON
+- Schreibt initiale Daten in InfluxDB
+- Stellt sicher, dass Fahrzeuge in InfluxDB vorhanden sind
 
 ---
 
@@ -159,28 +214,45 @@ ESP32 Sensor  -->  MQTT Publish  -->  Mosquitto  -->  Node-RED Subscribe
                                                            v
                                                      CSV Parsing
                                                            |
-                                                           v
-                                                     Line Protocol
-                                                           |
-                                                           v
-                                                     HTTP POST
-                                                           |
-                                                           v
-                                                      InfluxDB
-                                                           |
-                                                           v
-                                                       Grafana
+                                      +--------------------+--------------------+
+                                      |                                         |
+                                      v                                         v
+                              Line Protocol                              Alert Detection
+                                      |                                         |
+                                      v                                         v
+                                HTTP POST                              Calendar Webhook
+                                      |                                         |
+                                      v                                         v
+                                  InfluxDB                            Google Calendar API
+                                      |                                         |
+                                      v                                         v
+                                  Grafana                                 Termin erstellt
 ```
 
-### 3.2 Latenz-Erwartungen
+### 3.2 Alert-Workflow
+
+```
+MQTT Alert  -->  Node-RED  -->  Alert-Regeln pruefen  -->  Calendar Webhook
+                                                                    |
+                                                                    v
+                                                         Google Calendar Event
+                                                                    |
+                                                                    v
+                                                            Email/Notification
+```
+
+### 3.3 Latenz-Erwartungen
 
 | Strecke | Erwartete Latenz |
 |---------|------------------|
 | ESP32 --> Mosquitto | 10-50ms (WLAN) |
 | Mosquitto --> Node-RED | < 5ms |
 | Node-RED --> InfluxDB | 5-20ms |
+| Node-RED --> Calendar Webhook | 10-50ms |
+| Calendar Webhook --> Google API | 100-500ms |
 | InfluxDB --> Grafana | 50-200ms (Query) |
-| **Gesamt** | **< 300ms** |
+| **Gesamt (Telemetrie)** | **< 300ms** |
+| **Gesamt (Alarm mit Kalender)** | **< 600ms** |
 
 ---
 
@@ -360,10 +432,21 @@ from(bucket: "vehicle_data")
 
 ## 6. Node-RED Flows
 
-### 6.1 Hauptflow: MQTT --> InfluxDB
+### 6.1 Hauptflows
 
+#### Flow 1: MQTT --> InfluxDB
 ```
-[MQTT In] --> [Function: CSV zu Line Protocol] --> [HTTP Request] --> [Debug]
+[MQTT In] --> [Function: CSV zu Line Protocol] --> [HTTP Request: InfluxDB] --> [Debug]
+```
+
+#### Flow 2: Alert Detection --> Google Calendar
+```
+[MQTT In] --> [Function: CSV Parser] --> [Switch: Alert Filter] --> [Function: Event Builder] --> [HTTP Request: Calendar Webhook] --> [Debug]
+```
+
+#### Flow 3: Vehicle Sync Trigger
+```
+[Inject: On Start] --> [HTTP Request: vehicle-sync] --> [Debug]
 ```
 
 ### 6.2 CSV Parser Logik
@@ -424,9 +507,58 @@ return msg;
 
 ### 6.3 HTTP Request Konfiguration
 
+#### InfluxDB Write
 - **URL**: `http://influxdb:8086/api/v2/write?org=vehicle_org&bucket=vehicle_data&precision=ns`
 - **Methode**: POST
 - **Headers**: Authorization Token
+
+#### Calendar Webhook
+- **URL**: `http://calendar-webhook:5000/event`
+- **Methode**: POST
+- **Headers**: Content-Type: application/json
+- **Body**: JSON-Event-Objekt
+
+**Event-Format**:
+```json
+{
+  "summary": "[ALARM] Fahrzeug F001 - Kraftstoff niedrig",
+  "description": "Kraftstoffstand unter 10 Liter. Fahrzeug: F001",
+  "duration_minutes": 30,
+  "colorId": "11"
+}
+```
+
+### 6.4 Alert-Regeln Konfiguration
+
+**Datei**: `config/alerts.json`
+
+```json
+{
+  "google_calendar": {
+    "enabled": true,
+    "calendar_id": "iotwssmartcar@gmail.com"
+  },
+  "alerts": {
+    "fuel_low": {
+      "enabled": true,
+      "threshold": 10.0,
+      "severity": "HOCH",
+      "calendar_duration": 30
+    },
+    "battery_low": {
+      "enabled": true,
+      "threshold": 11.5,
+      "severity": "MITTEL",
+      "calendar_duration": 15
+    },
+    "error_detected": {
+      "enabled": true,
+      "severity": "KRITISCH",
+      "calendar_duration": 60
+    }
+  }
+}
+```
 
 ---
 
@@ -680,7 +812,57 @@ docker stats
 
 ## 11. API-Referenz
 
-### 11.1 InfluxDB HTTP API
+### 11.1 Calendar Webhook API
+
+**Base URL**: `http://calendar-webhook:5000` (intern) oder `http://localhost:5000` (extern)
+
+#### Health Check
+```bash
+curl http://localhost:5000/health
+```
+
+**Response**:
+```json
+{
+  "status": "ok",
+  "google_api": true
+}
+```
+
+#### Event erstellen
+```bash
+curl -X POST http://localhost:5000/event \
+  -H "Content-Type: application/json" \
+  -d '{
+    "summary": "Test Event",
+    "description": "Test-Beschreibung",
+    "duration_minutes": 30
+  }'
+```
+
+**Response (Erfolg)**:
+```json
+{
+  "success": true,
+  "event_id": "abc123...",
+  "link": "https://calendar.google.com/..."
+}
+```
+
+**Response (Fehler)**:
+```json
+{
+  "success": false,
+  "error": "Fehlerbeschreibung"
+}
+```
+
+#### Test-Event
+```bash
+curl http://localhost:5000/test
+```
+
+### 11.2 InfluxDB HTTP API
 
 **Health Check:**
 ```bash
@@ -703,7 +885,7 @@ curl -X POST "http://localhost:8086/api/v2/write?org=vehicle_org&bucket=vehicle_
   -d 'vehicle_state,vehicle_id=CAR001,state=idle fuel_l=45.5,battery_v=12.8,online=1i'
 ```
 
-### 11.2 Grafana API
+### 11.3 Grafana API
 
 **Dashboards auflisten:**
 ```bash
@@ -715,11 +897,23 @@ curl -u admin:admin http://localhost:3001/api/search
 curl -u admin:admin http://localhost:3001/api/dashboards/uid/smart-car-main
 ```
 
-### 11.3 Node-RED API
+### 11.4 Node-RED API
 
 **Flows exportieren:**
 ```bash
 curl http://localhost:1880/flows
+```
+
+### 11.5 Vehicle Sync Service
+
+**Fahrzeuge synchronisieren:**
+```bash
+docker exec vehicle-sync python /app/sync_vehicles.py
+```
+
+Oder via HTTP (wenn service läuft):
+```bash
+curl -X POST http://localhost:8080/sync
 ```
 
 ---
@@ -736,8 +930,103 @@ curl http://localhost:1880/flows
 | DOCKER_INFLUXDB_INIT_BUCKET | InfluxDB | Standard-Bucket |
 | DOCKER_INFLUXDB_INIT_ADMIN_TOKEN | InfluxDB | API-Token |
 | GF_SECURITY_ADMIN_PASSWORD | Grafana | Admin-Passwort |
+| GOOGLE_KEY_FILE | calendar-webhook | Service Account Key Pfad |
+| ALERTS_FILE | calendar-webhook | Alert-Konfiguration Pfad |
 
-### B. Referenzen
+### B. Konfigurationsdateien
+
+| Datei | Beschreibung |
+|-------|--------------|
+| `config/alerts.json` | Alert-Regeln und Calendar-Konfiguration |
+| `config/vehicles.json` | Fahrzeugdaten und -konfiguration |
+| `config/google-calendar-key.json` | Google Service Account Key |
+| `docker-compose.yml` | Container-Orchestrierung |
+| `node-red/flows.json` | Node-RED Flows |
+| `node-red/flows_cred.json` | Verschluesselte Credentials |
+| `mosquitto/config/mosquitto.conf` | MQTT Broker Konfiguration |
+
+### D. Google Calendar Integration
+
+#### Service Account Setup
+
+1. **Google Cloud Console**: [console.cloud.google.com](https://console.cloud.google.com)
+2. Projekt erstellen/auswählen
+3. **APIs & Services** → **Library** → **Google Calendar API** aktivieren
+4. **IAM & Admin** → **Service Accounts** → Service Account erstellen
+5. Key erstellen (JSON) → als `google-calendar-key.json` speichern
+6. Kalender mit Service Account Email teilen (Berechtigungen: Änderungen vornehmen und Freigabe verwalten)
+
+#### Event-Farbcodes
+
+| colorId | Farbe | Verwendung |
+|---------|-------|------------|
+| 9 | Blau | Standard-Alarme |
+| 6 | Orange | HOCH Priorität |
+| 11 | Rot | KRITISCH Priorität |
+| 10 | Grün | Erfolgreiche Aktionen |
+
+#### Troubleshooting Calendar
+
+**Fehler: "Invalid JWT Signature"**
+- Service Account Key ist ungültig oder abgelaufen
+- Lösung: Neuen Key erstellen und in `google-calendar-key.json` ersetzen
+- Container neustarten: `docker restart calendar-webhook`
+
+**Fehler: "Calendar not found"**
+- Kalender ist nicht mit Service Account geteilt
+- Lösung: In Google Calendar Kalender freigeben für Service Account Email
+
+**Fehler: "API not enabled"**
+- Google Calendar API ist nicht aktiviert
+- Lösung: In Google Cloud Console API aktivieren
+
+### E. Backup und Wiederherstellung
+
+#### InfluxDB Backup
+```bash
+# Backup erstellen
+docker exec influxdb influx backup /backup -t vehicle-admin-token
+
+# Backup aus Container kopieren
+docker cp influxdb:/backup ./influxdb-backup
+```
+
+#### InfluxDB Restore
+```bash
+# Backup in Container kopieren
+docker cp ./influxdb-backup influxdb:/restore
+
+# Restore durchführen
+docker exec influxdb influx restore /restore -t vehicle-admin-token
+```
+
+#### Grafana Dashboards Backup
+```bash
+# Alle Dashboards exportieren
+curl -u admin:admin http://localhost:3001/api/search?type=dash-db | \
+  jq -r '.[] | .uid' | \
+  xargs -I {} curl -u admin:admin http://localhost:3001/api/dashboards/uid/{} > dashboard-{}.json
+```
+
+#### Node-RED Flows Backup
+```bash
+# Flows sichern
+cp node-red/flows.json node-red/flows_backup_$(date +%Y%m%d).json
+cp node-red/flows_cred.json node-red/flows_cred_backup_$(date +%Y%m%d).json
+```
+
+### F. Referenzen
+
+| Service | Port (Host) | Port (Container) | Zugriff |
+|---------|-------------|------------------|---------|
+| Mosquitto (MQTT) | 1883 | 1883 | Intern |
+| Mosquitto (MQTTS) | 8883 | 1883 | Extern (TLS) |
+| Node-RED | 1880 | 1880 | Web-UI |
+| InfluxDB | 8086 | 8086 | API |
+| Grafana | 3001 | 3000 | Web-UI |
+| Calendar Webhook | 5000 | 5000 | API (intern) |
+
+### D. Google Calendar Integration
 
 - [InfluxDB 2.x Dokumentation](https://docs.influxdata.com/influxdb/v2/)
 - [Grafana Dokumentation](https://grafana.com/docs/grafana/latest/)
@@ -749,4 +1038,12 @@ curl http://localhost:1880/flows
 ---
 
 *Dokumentation erstellt: Januar 2026*
-*Version: 1.0*
+*Letzte Aktualisierung: Februar 2026*
+*Version: 2.0*
+
+**Änderungen in v2.0:**
+- Google Calendar Integration
+- Vehicle Sync Service
+- Alert-System mit Kalender-Integration
+- Erweiterte API-Dokumentation
+- Backup und Wiederherstellung
