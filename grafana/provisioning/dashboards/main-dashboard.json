@@ -1656,7 +1656,7 @@
     {
       "datasource": {
         "type": "mssql",
-        "uid": "dfc0nn96zhxq8b"
+        "uid": "cfc15eb7mht6oc"
       },
       "fieldConfig": {
         "defaults": {
@@ -1778,13 +1778,13 @@
           "dataset": "GoogleCalendar_smart_car_iot",
           "datasource": {
             "type": "mssql",
-            "uid": "dfc0nn96zhxq8b"
+            "uid": "cfc15eb7mht6oc"
           },
-          "editorMode": "builder",
+          "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT Summary, Description, StartDateTime, EndDateTime FROM [GoogleCalendar_smart_car_iot].[GoogleCalendar].[iotwssmartcar@gmail.com] WHERE CAST(StartDateTime AS DATE) = CAST(GETDATE() AS DATE) ORDER BY StartDateTime ",
-          "refId": "GetCalenderEvents",
+          "rawSql": "SELECT Summary, Description, StartDateTime, EndDateTime FROM [GoogleCalendar_smart_car_iot].[GoogleCalendar].[iotwssmartcar@gmail.com] WHERE CAST(StartDateTime AS DATE) = CAST(GETDATE() AS DATE) ORDER BY StartDateTime",
+          "refId": "A",
           "sql": {
             "columns": [
               {
@@ -1833,5 +1833,5 @@
   "timezone": "browser",
   "title": "Flottenuebersicht",
   "uid": "smart-car-main",
-  "version": 32
+  "version": 28
 }

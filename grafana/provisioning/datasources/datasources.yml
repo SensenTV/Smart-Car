@@ -14,3 +14,21 @@ datasources:
     secureJsonData:
       token: vehicle-admin-token
     isDefault: true
+
+  - name: mssql
+    type: mssql
+    uid: cfc15eb7mht6oc
+    access: proxy
+    url: tds.cdata.com:14333
+    user: iotwssmartcar@gmail.com
+    database: GoogleCalendar_smart_car_iot
+    jsonData:
+      connMaxLifetime: 14400
+      encrypt: disable
+      maxIdleConns: 100
+      maxIdleConnsAuto: true
+      maxOpenConns: 100
+      pdcInjected: false
+    secureJsonData:
+      password: +Y31rOcazFeHPJIuQjXpkstCbB5XTGi+DcAUWLCOHt17BYvN
+    isDefault: false
