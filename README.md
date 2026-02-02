@@ -98,9 +98,11 @@
 | **WLAN + LoRa** | Duale Konnektivitaet fuer flexible Einsatzszenarien |
 | **Echtzeit-Daten** | Live-Streaming von Fahrzeugtelemetrie |
 | **Alarmsystem** | Automatische Benachrichtigungen bei Fehlern |
+| **Google Calendar Integration** | Automatische Erstellung von Wartungsterminen |
+| **Fahrzeug-Synchronisation** | Automatische Daten-Abgleichung mit InfluxDB |
+| **Alert-Management** | Intelligente Alert-Verarbeitung und Eskalation |
 | **Dashboards** | Vorkonfigurierte Grafana-Visualisierungen |
 | **Docker-basiert** | Einfache Installation und Portabilitaet |
-| **Google Calendar** | Integration fuer Wartungsplanung |
 
 ---
 
@@ -154,6 +156,8 @@ Alle Container sollten den Status `Up` haben:
 - grafana
 - mosquitto
 - node-red
+- calendar-webhook
+- vehicle-sync
 
 ---
 
@@ -292,6 +296,41 @@ Beispiel: `alert,CAR001,fuel_low,Kraftstoff_unter_10L`
 
 ---
 
+## Services und APIs
+
+### Web-Interfaces
+
+| Service | URL | Beschreibung |
+|---------|-----|--------------|
+| **Grafana** | http://localhost:3001 | Dashboards und Visualisierung |
+| **Node-RED** | http://localhost:1880 | Flow-Editor und Debugging |
+| **InfluxDB** | http://localhost:8086 | Datenbank-UI und Queries |
+
+### Backend-Services
+
+| Service | Port | Beschreibung |
+|---------|------|--------------|
+| **Calendar Webhook** | 5000 | Google Calendar Integration |
+| **Vehicle Sync** | - | Fahrzeugdaten-Synchronisation |
+
+### API-Endpunkte
+
+**Calendar Webhook:**
+```bash
+# Health Check
+curl http://localhost:5000/health
+
+# Event erstellen
+curl -X POST http://localhost:5000/event \
+  -H "Content-Type: application/json" \
+  -d '{"summary":"Alert","description":"Test","duration_minutes":30}'
+
+# Test-Event
+curl http://localhost:5000/test
+```
+
+---
+
 ## Web-Interfaces
 
 | Service | URL | Beschreibung |
@@ -317,7 +356,7 @@ Beispiel: `alert,CAR001,fuel_low,Kraftstoff_unter_10L`
 | Feld | Wert |
 |------|------|
 | Benutzer | `admin` |
-| Passwort | `admin` | IoT_Smart_CarWS25/26 |
+| Passwort | `admin` |
 
 ### MQTT (Mosquitto)
 | Port | Verwendung |
@@ -348,6 +387,15 @@ Smart-Car/
 |       |   +-- vehicle-detail-dashboard.json
 |       +-- datasources/       # Datenquellen-Konfiguration
 |
+|-- config/
+|   |-- alerts.json            # Alert-Regeln und Calendar-Config
+|   |-- vehicles.json          # Fahrzeugdaten
+|   |-- google-calendar-key.json # Service Account Key
+|   |-- calendar_webhook.py    # Calendar Webhook Server
+|   |-- sync_vehicles.py       # Vehicle Sync Script
+|   |-- auto_sync.py           # Automatische Synchronisation
+|   +-- trip_processor.py      # Fahrt-Verarbeitung
+|
 |-- mosquitto/
 |   |-- config/
 |   |   |-- mosquitto.conf     # MQTT-Konfiguration
@@ -355,7 +403,7 @@ Smart-Car/
 |   +-- log/                   # MQTT-Logs
 |
 |-- node-red/
-|   |-- flows.json             # Node-RED Flows
+|   |-- flows.json             # Node-RED Flows (mit Alerts und Calendar)
 |   +-- settings.js            # Node-RED Einstellungen
 |
 |-- esp32/                     # ESP32 Beispielcode
@@ -399,8 +447,8 @@ docker exec -it influxdb influx query 'from(bucket:"vehicle_data") |> range(star
 
 | Name | Rolle | GitHub |
 |------|-------|--------|
-| **SensenTV** | Entwickler | [@SensenTV](https://github.com/SensenTV) |
-| **VellGmbH** | Entwickler | [@VellGmbH](https://github.com/VellGmbH) |
+| **Steven** | Entwickler | [@SensenTV](https://github.com/SensenTV) |
+| **Daniel** | Entwickler | [@VellGmbH](https://github.com/VellGmbH) |
 | **Baris** | Entwickler | [@baris2602](https://github.com/baris2602) |
 
 ---
