@@ -974,6 +974,11 @@
         "name": "Response",
         "func": "const result = msg.payload;\n\nif (result && result.success) {\n    node.status({fill:'green', shape:'dot', text: 'Termin erstellt'});\n    node.warn('Kalender-Termin erstellt: ' + (result.link || result.event_id));\n} else if (msg.statusCode === 200 || msg.statusCode === 201) {\n    node.status({fill:'green', shape:'dot', text: 'OK'});\n} else {\n    const error = result ? result.error : 'Fehler';\n    node.status({fill:'yellow', shape:'ring', text: error});\n    node.warn('Kalender: ' + error);\n}\n\nreturn msg;",
         "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
         "x": 1120,
         "y": 120,
         "wires": [
