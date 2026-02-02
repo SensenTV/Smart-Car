@@ -135,6 +135,44 @@ Die JSON-Schlüsseldatei wird automatisch geladen. Stelle sicher:
 
 ---
 
+## Grafana: Heutige Termine ohne Google Sheets
+
+Wenn du lediglich deine Google-Calendar-Einträge direkt im Dashboard sehen willst, brauchst du keine zusätzliche Google-Sheet-Bridge mehr.
+
+1. **Docker Compose aktualisieren:** Der `grafana`-Container installiert jetzt automatisch das Plugin `yesoreyeram-infinity-datasource`. Führe nach dem Pull `docker compose up -d grafana --force-recreate` aus, damit das Plugin heruntergeladen wird.
+2. **Neuer Data Source Eintrag:** Unter `Connections → Data sources` findest du jetzt automatisch `Calendar Events`. Die Quelle ruft den lokalen Calendar-Webhook (`http://calendar-webhook:5000`) ab – keine weiteren Tokens nötig.
+3. **Neues Endpoint testen:** Stelle sicher, dass der Webhook läuft und der Service-Account Zugriff hat:
+   ```
+   curl http://localhost:5000/events/today
+   ```
+   Du solltest eine JSON-Liste deiner heutigen Termine erhalten. Fehler wie „Google Calendar deaktiviert“ deuten auf eine fehlende `alerts.json`-Konfiguration hin.
+4. **Dashboard-Panel (Frontend Parser):** Das Main-Dashboard enthält das Panel *„Heutige Termine (Google Calendar)“*. Falls du es manuell nachbauen willst, setze im Query-Editor folgende Optionen:
+   - **Type:** `JSON`, **Parser:** `Frontend`, **Format:** `Table`, **Root selector:** `events`.
+   - `Columns` definieren: `start_local → Start`, `end_local → Ende`, `summary → Termin`, `vehicle_hint → Fahrzeug`, `description → Beschreibung`, `status → Status`, optional `htmlLink → Link`.
+   - URL bleibt `http://calendar-webhook:5000/events/today`, Methode `GET`, Cache 60 s.
+   Damit landet jedes Event als Tabellenzeile, ohne dass Google Sheets nötig ist. Der Hinweis „This parser does not support backend operations …“ ist nur informativ und kann ignoriert werden, solange du keine Alert-Queries daraus baust.
+5. **Alternative (JSONata Backend):** Falls du lieber einen Backend-Parser mit JSONata nutzen willst, wähle im Parser-Dropdown `Backend → JSONata` und verwende diese Expression:
+   ```jsonata
+   (
+     $events := events;
+     $events.$map(function($e) {
+       {
+         Start: $e.start_local,
+         Ende: $e.end_local,
+         Termin: $e.summary,
+         Fahrzeug: $e.vehicle_hint,
+         Status: $e.status,
+         Beschreibung: $substring($e.description,0,120),
+         Link: $e.htmlLink
+       }
+     })
+   )
+   ```
+   Dadurch verschwindet die Backend-Warnung und du kannst Alerting/Sharing auf dem Panel nutzen.
+6. **Eigene Filter:** Falls du mehrere Kalender einbindest, kannst du im Panel weitere Spalten (z. B. `calendar_id`) anzeigen oder im Data-Source-Query zusätzliche URL-Parameter (`?limit=10`) setzen.
+
+---
+
 ## Testen
 
 1. Sende Test-Alert:
