@@ -1,17 +1,40 @@
-\documentclass[11pt,a4paper]{article}
-\usepackage[utf8]{inputenc}
+\documentclass[12pt,a4paper]{article}
+\usepackage[ngerman]{babel}
+% Schaltet Babel-Kurzbefehle wie "s -> ß ab, damit normales Anführungszeichen+S möglich bleibt
+\AtBeginDocument{\shorthandoff{"}}
+\usepackage{lipsum}
+\usepackage{pdfpages}
 \usepackage[T1]{fontenc}
-\usepackage{ngerman}
-\usepackage[scaled]{uarial}
-\usepackage{geometry}
-\usepackage{hyperref}
-\usepackage{array}
 \usepackage{longtable}
 \usepackage{booktabs}
-\usepackage{graphicx}
+\usepackage{tabularx}
 \usepackage{enumitem}
-\usepackage{verbatim}
+
+% Lade Einstellungen und Pakete
+\usepackage{xcolor}       % Farben für Text
+\usepackage{graphicx}     % Für Bilder (z.B. Logos)
+\usepackage{fancyhdr}
+\usepackage{float}
+\usepackage{subcaption}
 \usepackage{listings}
+\usepackage{hyperref}
+
+% Seitenränder anpassen
+\usepackage[a4paper, left=2.5cm, right=2.5cm, top=3cm, bottom=3cm]{geometry}
+\definecolor{htwblau}{HTML}{00b3f0}
+\setlength{\parindent}{0pt}  % Deaktiviert die Absatzeinrückung
+
+
+\renewcommand{\contentsname}{Inhaltsverzeichnis}  % Ändert "Contents" zu "Inhaltsverzeichnis"
+
+% Kopf-/Fußzeilen anpassen
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\textbf{\textcolor{htwblau}{E}\textcolor{black}{m}\textcolor{htwblau}{R}\textcolor{black}{o}\textcolor{htwblau}{L}\textcolor{black}{ab}}}
+\fancyfoot[C]{\thepage}
+
+\setlength{\headheight}{15pt}
+
 \lstset{
   basicstyle=\ttfamily\small,
   columns=fullflexible,
@@ -30,13 +53,41 @@
 \geometry{margin=2.5cm}
 \hypersetup{hidelinks}
 
-\title{Technische Dokumentation -- Smart-Car IoT Platform}
-\author{}
-\date{}
 
 \begin{document}
-\maketitle
-\tableofcontents
+
+	% Titelblatt
+	\begin{titlepage}
+		\definecolor{htwblau}{HTML}{00b3f0}
+		\includegraphics[width=\linewidth]{graphics/htw_logo}
+		\vspace{1cm}
+		% EmRoLab oben in der Mitte der Seite
+
+		\begin{center}
+			\textbf{\Huge \textcolor{htwblau}{E}\textcolor{black}{m}\textcolor{htwblau}{R}\textcolor{black}{o}\textcolor{htwblau}{L}\textcolor{black}{ab}}\\[2cm]
+		\end{center}
+
+
+		\begin{center}
+			% Titel
+			\Huge \textbf{Technische Dokumentation}\\[1cm]
+      \Huge \textbf{Projekt "Smart-Car"}\\[2cm]
+
+			% Optional Version oder andere Infos
+			\Large Baris Usluoglu,
+			\Large Daniel Shapiro,
+			\Large Steven Haupenthal\\[2cm]
+			% Datum
+			\Large Saarbrücken, den \today
+		\end{center}
+	\end{titlepage}
+
+	% Inhaltsverzeichnis
+	\pagenumbering{roman} % Keine Seitenzahlen für Inhaltsverzeichnis
+	\tableofcontents
+	\newpage
+	\pagenumbering{arabic} % Start der Seitenzahlen ab Kapitel 1
+	\setcounter{page}{1}
 \newpage
 
 \section{Systemuebersicht}
@@ -69,14 +120,12 @@ Orchestrierung & Docker Compose & 3.8 & Container-Management \\
 \subsection{Netzwerk-Topologie}
 \begin{verbatim}
 +-------------------------------------------------------------------------+
-|                         Docker Network                                  |
-|                       (smartcar-network)                                |
+|                          Docker Network                                 |                                
 |                                                                         |
 |  +-----------+   +-----------+   +-----------+   +----------------+     |
 |  | mosquitto |   |  node-red |   | influxdb  |   | calendar-      |     |
 |  |  :1883    |<--|   :1880   |-->|  :8086    |   | webhook :5000  |     |
-|  +-----------+   +-----+-----+   +-----+-----+   +--------^-------|     |
-|        |               |               |                  |             |
+|  +-----|-----+   +-----|-----+   +-----|-----+   +--------|-------|     |
 |        |               |               |                  |             |
 |        |               v               v                  |             |
 |        |         +-----+-----+   +-----v-----+            |             |
