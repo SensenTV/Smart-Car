@@ -328,14 +328,21 @@
             {
                 "p": "topic",
                 "vt": "str"
+            },
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
             }
         ],
         "repeat": "",
         "crontab": "",
         "once": false,
         "onceDelay": 0.1,
-        "topic": "smartcar/TEST001",
-        "payload": "error,TEST001,E001,RESOLVED",
+        "topic": "smartcar/VW-Passat-B5-001",
+        "payload": "error,VW-Passat-B5-001,E_001,RESOLVED",
         "payloadType": "str",
         "x": 140,
         "y": 180,

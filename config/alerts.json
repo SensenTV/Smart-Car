@@ -174,7 +174,7 @@
   "google_calendar": {
     "enabled": true,
     "key_file": "/config/google-calendar-key.json",
-    "calendar_id": "iotwssmartcar@gmail.com"
+    "calendar_id": "iotsmartcar1@gmail.com"
   },
   "notifications": {
     "email": {

@@ -20,8 +20,8 @@ datasources:
     uid: cfc15eb7mht6oc
     access: proxy
     url: tds.cdata.com:14333
-    user: iotwssmartcar@gmail.com
-    database: GoogleCalendar_smart_car_iot
+    user: smartcarhtwsaar@gmail.com
+    database: GoogleCalendarSmartCar
     jsonData:
       connMaxLifetime: 14400
       encrypt: disable
@@ -30,5 +30,5 @@ datasources:
       maxOpenConns: 100
       pdcInjected: false
     secureJsonData:
-      password: +Y31rOcazFeHPJIuQjXpkstCbB5XTGi+DcAUWLCOHt17BYvN
+      password: d5HDGKxSXFeGcHeRvUces+6s2FvpqEjtz0Z0hbpxUtsQzqL8
     isDefault: false

@@ -97,9 +97,9 @@ services:
       # Gmail SMTP Konfiguration
       - GF_SMTP_ENABLED=true
       - GF_SMTP_HOST=smtp.gmail.com:587
-      - GF_SMTP_USER=smartcarhtwsaar@gmail.com
-      - GF_SMTP_PASSWORD=nbue gyyt chgf nuve
-      - GF_SMTP_FROM_ADDRESS=smartcarhtwsaar@gmail.com
+      - GF_SMTP_USER=iotsmartcar1@gmail.com
+      - GF_SMTP_PASSWORD=acoz twsn hqpp ddqn
+      - GF_SMTP_FROM_ADDRESS=iotsmartcar1@gmail.com
       - GF_SMTP_FROM_NAME=Smart Car Grafana
       - GF_SMTP_SKIP_VERIFY=true
     depends_on:

@@ -1,0 +1,879 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{ngerman}
+\usepackage[scaled]{uarial}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{verbatim}
+\usepackage{listings}
+\lstset{
+  basicstyle=\ttfamily\small,
+  columns=fullflexible,
+  breaklines=true,
+  frame=single
+}
+% Minimal JSON language definition for listings
+\lstdefinelanguage{json}{
+  morestring=[b]",
+  morestring=[s]{"}{"},
+  morecomment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  sensitive=true,
+  showstringspaces=false
+}
+\geometry{margin=2.5cm}
+\hypersetup{hidelinks}
+
+\title{Technische Dokumentation -- Smart-Car IoT Platform}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Systemuebersicht}
+\subsection{Architekturprinzipien}
+Das Smart-Car System folgt einer ereignisgesteuerten Microservice-Architektur:
+\begin{itemize}[noitemsep]
+  \item Lose Kopplung: Komponenten kommunizieren ueber MQTT.
+  \item Skalierbarkeit: Jeder Service laeuft in eigenem Container.
+  \item Ausfallsicherheit: Message Queue puffert bei Ausfaellen.
+  \item Erweiterbarkeit: Neue Datenquellen einfach integrierbar.
+\end{itemize}
+
+\subsection{Technologie-Stack}
+\begin{longtable}{p{0.18\textwidth}p{0.25\textwidth}p{0.15\textwidth}p{0.32\textwidth}}
+\toprule
+Schicht & Technologie & Version & Zweck \\
+\midrule
+Hardware & ESP32 & - & Datenerfassung \\
+Transport & MQTT (Mosquitto) & 2.x & Nachrichtenuebertragung \\
+Verarbeitung & Node-RED & 3.x & ETL und Alarmierung \\
+Speicherung & InfluxDB & 2.x & Zeitreihendatenbank \\
+Visualisierung & Grafana & 10.x+ & Dashboards \\
+Integration & Google Calendar & v3 & Kalender-Integration \\
+Backend & Python/Flask & 3.11 & Calendar Webhook Server \\
+Sync & Python Scripts & 3.11 & Fahrzeugdaten-Synchronisation \\
+Orchestrierung & Docker Compose & 3.8 & Container-Management \\
+\bottomrule
+\end{longtable}
+
+\subsection{Netzwerk-Topologie}
+\begin{verbatim}
++-------------------------------------------------------------------------+
+|                         Docker Network                                  |
+|                       (smartcar-network)                                |
+|                                                                         |
+|  +-----------+   +-----------+   +-----------+   +----------------+     |
+|  | mosquitto |   |  node-red |   | influxdb  |   | calendar-      |     |
+|  |  :1883    |<--|   :1880   |-->|  :8086    |   | webhook :5000  |     |
+|  +-----------+   +-----+-----+   +-----+-----+   +--------^-------|     |
+|        |               |               |                  |             |
+|        |               |               |                  |             |
+|        |               v               v                  |             |
+|        |         +-----+-----+   +-----v-----+            |             |
+|        |         | vehicle-  |   |  grafana  |            |             |
+|        |         | sync      |   |  :3001    |            |             |
+|        |         +-----------+   +-----------+            |             |
++--------+-------------------------------------------------+--------------+
+         |                                                  |
+         | Port 1883                                    HTTP Webhook
+         v                                                  |
+  +-----------+                                             v
+  |   ESP32   |                                   Google Calendar API
+  |  Devices  |
+  +-----------+
+\end{verbatim}
+
+\section{Komponenten im Detail}
+\subsection{Mosquitto MQTT Broker}
+\textbf{Funktion}: Zentrale Nachrichtenvermittlung zwischen ESP32 und Node-RED.
+
+\textbf{Konfiguration} (\texttt{mosquitto/config/mosquitto.conf}):
+\begin{lstlisting}[language={}]
+# Unverschluesselter Port (nur intern)
+listener 1883
+protocol mqtt
+
+# Anonyme Verbindungen erlaubt
+allow_anonymous true
+\end{lstlisting}
+
+\textbf{Ports}:
+\begin{tabular}{lll}
+\toprule
+Port & Protokoll & Verwendung \\
+\midrule
+1883 & MQTT & Kommunikation (Node-RED / ESP32) \\
+\bottomrule
+\end{tabular}
+
+\subsection{Node-RED}
+\textbf{Funktion}: Datenverarbeitung, Transformation und Alarmierung.
+
+\textbf{Konfiguration} (\texttt{node-red/settings.js}):
+\begin{itemize}[noitemsep]
+  \item Flow-Speicherort: /data/flows.json
+  \item Credentials: /data/flows\_cred.json
+\end{itemize}
+
+\textbf{Flow-Funktionalitaet}:
+\begin{itemize}[noitemsep]
+  \item CSV-Parsing von MQTT-Nachrichten
+  \item Konvertierung zu InfluxDB Line Protocol
+  \item HTTP-basiertes Schreiben nach InfluxDB
+\end{itemize}
+
+\subsection{InfluxDB 2.x}
+\textbf{Funktion}: Speicherung und Abfrage von Zeitreihendaten.
+
+\textbf{Konfiguration}:
+\begin{tabular}{ll}
+\toprule
+Parameter & Wert \\
+\midrule
+Organisation & vehicle\_org \\
+Bucket & vehicle\_data \\
+Retention & Standard (unbegrenzt) \\
+Admin-Token & vehicle-admin-token \\
+\bottomrule
+\end{tabular}
+
+\textbf{Wichtige Konzepte}:
+\begin{itemize}[noitemsep]
+  \item Bucket: Container fuer Zeitreihendaten
+  \item Measurement: Aequivalent zu SQL-Tabelle
+  \item Tag: Indexierte Metadaten (z.B. vehicle\_id)
+  \item Field: Messwerte (z.B. fuel\_l, battery\_v)
+\end{itemize}
+
+\newpage
+\subsection{Grafana}
+\textbf{Funktion}: Visualisierung und Alerting.
+
+\textbf{Provisioning-Struktur}:
+\begin{verbatim}
+grafana/provisioning/
+|-- dashboards/
+|   |-- dashboards.yml         # Dashboard-Provider
+|   |-- main-dashboard.json    # Hauptuebersicht
+|   +-- vehicle-detail-dashboard.json # Einzelne Fahrzeugdaten
+|-- datasources/
+|   +-- datasources.yml        # Datenquellen
++-- alerting/
+    |-- alert-rules.yml        # Alert-Regeln
+    |-- contact-points.yml     # Benachrichtigungsziele
+    +-- notification-policies.yml  # Benachrichtigungsrichtlinien
+\end{verbatim}
+
+\subsection{Calendar Webhook Server}
+\textbf{Funktion}: Google Calendar Integration fuer Alerts und Termine. Technologie: Python 3.11 + Flask.
+
+\textbf{Konfiguration}:
+\begin{itemize}[noitemsep]
+  \item Service Account Key: /config/google-calendar-key.json
+  \item Alerts Config: /config/alerts.json
+  \item Port: 5000
+\end{itemize}
+
+\textbf{API-Endpunkte}:
+\begin{tabular}{lll}
+\toprule
+Endpoint & Methode & Beschreibung \\
+\midrule
+/health & GET & Health Check \\
+/event & POST & Kalendereintrag erstellen \\
+/test & GET & Test-Event erstellen \\
+\bottomrule
+\end{tabular}
+
+\textbf{Anforderungen}:
+\begin{itemize}[noitemsep]
+  \item Google Cloud Service Account mit Calendar API-Berechtigung
+  \item Kalender muss mit Service Account geteilt sein
+\end{itemize}
+
+\subsection{Vehicle Sync Service}
+\textbf{Funktion}: Periodische Synchronisation von Fahrzeugdaten mit InfluxDB. Technologie: Python 3.11.
+
+\textbf{Konfiguration} (\texttt{config/vehicles.json}):
+\begin{lstlisting}[language=json]
+{
+  "vehicles": [
+    {
+      "id": "F001",
+      "name": "Fahrzeug 1",
+      "fuel_capacity": 60.0,
+      "battery_nominal": 12.0
+    }
+  ]
+}
+\end{lstlisting}
+
+\textbf{Funktionalitaet}:
+\begin{itemize}[noitemsep]
+  \item Liest Fahrzeugkonfiguration aus JSON
+  \item Schreibt initiale Daten in InfluxDB
+  \item Stellt sicher, dass Fahrzeuge in InfluxDB vorhanden sind
+\end{itemize}
+
+\section{Datenfluss}
+\subsection{End-to-End Flow}
+\begin{verbatim}
+ESP32 Sensor  -->  MQTT Publish  -->  Mosquitto  -->  Node-RED Subscribe
+                                                           |
+                                                           v
+                                                     CSV Parsing
+                                                           |
+                                      +--------------------+--------------------+
+                                      |                                         |
+                                      v                                         v
+                              Line Protocol                              Alert Detection
+                                      |                                         |
+                                      v                                         v
+                                HTTP POST                              Calendar Webhook
+                                      |                                         |
+                                      v                                         v
+                                  InfluxDB                            Google Calendar API
+                                      |                                         |
+                                      v                                         v
+                                  Grafana                                 Termin erstellt
+\end{verbatim}
+
+\subsection{Alert-Workflow}
+\begin{verbatim}
+MQTT Alert  -->  Node-RED  -->  Alert-Regeln pruefen  -->  Calendar Webhook
+                                                                    |
+                                                                    v
+                                                         Google Calendar Event
+                                                                    |
+                                                                    v
+                                                            Email/Notification
+\end{verbatim}
+
+\subsection{Latenz-Erwartungen}
+\begin{tabular}{ll}
+\toprule
+Strecke & Erwartete Latenz \\
+\midrule
+ESP32 --\textgreater{} Mosquitto & 10-50ms (WLAN) \\
+Mosquitto --\textgreater{} Node-RED & $< 5$ms \\
+Node-RED --\textgreater{} InfluxDB & 5-20ms \\
+Node-RED --\textgreater{} Calendar Webhook & 10-50ms \\
+Calendar Webhook --\textgreater{} Google API & 100-500ms \\
+InfluxDB --\textgreater{} Grafana & 50-200ms (Query) \\
+Gesamt (Telemetrie) & $< 300$ms \\
+Gesamt (Alarm mit Kalender) & $< 600$ms \\
+\bottomrule
+\end{tabular}
+
+\section{MQTT-Protokoll}
+\subsection{Topic-Struktur}
+\begin{verbatim}
+smartcar/{vehicle_id}
+\end{verbatim}
+Alle Nachrichtentypen werden auf diesem Topic publiziert.
+
+\subsection{Nachrichtenformate}
+\paragraph{Fahrzeugstatus (state)}
+\begin{verbatim}
+state,{vehicle_id},{state_name},{fuel_l},{battery_v}
+\end{verbatim}
+\begin{tabular}{llll}
+\toprule
+Feld & Typ & Beschreibung & Beispiel \\
+\midrule
+vehicle\_id & String & Fahrzeug-Kennung & CAR001 \\
+state\_name & String & Fahrzeugzustand & driving, parked \\
+fuel\_l & Float & Kraftstoff in Litern & 45.5 \\
+battery\_v & Float & Batteriespannung & 12.8 \\
+\bottomrule
+\end{tabular}
+
+\paragraph{Fahrt-Zusammenfassung (trip)}
+\begin{verbatim}
+trip,{vehicle_id},{trip_id},{duration_s},{fuel_used},{max_acc},{max_brake}
+\end{verbatim}
+\begin{tabular}{lll}
+\toprule
+Feld & Typ & Beschreibung \\
+\midrule
+trip\_id & String & Eindeutige Fahrt-ID \\
+duration\_s & Integer & Fahrtdauer in Sekunden \\
+fuel\_used & Float & Verbrauchter Kraftstoff \\
+max\_acc & Float & Maximale Beschleunigung \\
+max\_brake & Float & Maximale Bremsung \\
+\bottomrule
+\end{tabular}
+
+\paragraph{Fehler (error)}
+\begin{verbatim}
+error,{vehicle_id},{error_code},{active}
+\end{verbatim}
+\begin{tabular}{lll}
+\toprule
+Feld & Typ & Beschreibung \\
+\midrule
+error\_code & String & OBD-II Fehlercode (z.B. P0420) \\
+active & Integer & 1 = aktiv, 0 = geloest \\
+\bottomrule
+\end{tabular}
+
+\paragraph{GPS-Position (gps)}
+\begin{verbatim}
+gps,{vehicle_id},{latitude},{longitude},{speed_kmh}
+\end{verbatim}
+\begin{tabular}{lll}
+\toprule
+Feld & Typ & Beschreibung \\
+\midrule
+latitude & Float & Breitengrad \\
+longitude & Float & Laengengrad \\
+speed\_kmh & Float & Geschwindigkeit in km/h \\
+\bottomrule
+\end{tabular}
+
+\paragraph{Alarm (alert)}
+\begin{verbatim}
+alert,{vehicle_id},{alert_type},{message}
+\end{verbatim}
+\begin{tabular}{lll}
+\toprule
+Feld & Typ & Beschreibung \\
+\midrule
+alert\_type & String & Alarm-Typ (z.B. fuel\_low) \\
+message & String & Alarm-Nachricht \\
+\bottomrule
+\end{tabular}
+
+\subsection{QoS-Level}
+\begin{tabular}{lll}
+\toprule
+Level & Beschreibung & Empfehlung \\
+\midrule
+QoS 0 & At most once & Nicht empfohlen \\
+QoS 1 & At least once & Standard fuer Telemetrie \\
+QoS 2 & Exactly once & Empfohlen fuer Fehler \\
+\bottomrule
+\end{tabular}
+
+\section{Datenmodell (InfluxDB)}
+\subsection{Measurements}
+\paragraph{vehicle\_state}
+\begin{verbatim}
+Measurement: vehicle_state
+Tags:
+  - vehicle_id (String)
+  - state (String)
+Fields:
+  - fuel_l (Float)
+  - battery_v (Float)
+  - online (Integer)
+\end{verbatim}
+
+\paragraph{trip\_summary}
+\begin{verbatim}
+Measurement: trip_summary
+Tags:
+  - vehicle_id (String)
+  - trip_id (String)
+Fields:
+  - duration_s (Integer)
+  - fuel_used (Float)
+  - max_acceleration (Float)
+  - max_braking (Float)
+\end{verbatim}
+
+\paragraph{vehicle\_errors}
+\begin{verbatim}
+Measurement: vehicle_errors
+Tags:
+  - vehicle_id (String)
+  - error_code (String)
+Fields:
+  - active (Integer)
+\end{verbatim}
+
+\paragraph{vehicle\_gps}
+\begin{verbatim}
+Measurement: vehicle_gps
+Tags:
+  - vehicle_id (String)
+Fields:
+  - latitude (Float)
+  - longitude (Float)
+  - speed_kmh (Float)
+\end{verbatim}
+
+\paragraph{alerts}
+\begin{verbatim}
+Measurement: alerts
+Tags:
+  - vehicle_id (String)
+  - alert_type (String)
+Fields:
+  - message (String)
+\end{verbatim}
+
+\subsection{Beispiel-Queries (Flux)}
+\textbf{Letzte Fahrzeugzustaende:}
+\begin{lstlisting}[language=SQL]
+from(bucket: "vehicle_data")
+  |> range(start: -1h)
+  |> filter(fn: (r) => r._measurement == "vehicle_state")
+  |> filter(fn: (r) => r.vehicle_id == "CAR001")
+  |> last()
+\end{lstlisting}
+
+\textbf{Aktive Fahrzeuge zaehlen:}
+\begin{lstlisting}[language=SQL]
+from(bucket: "vehicle_data")
+  |> range(start: -1h)
+  |> filter(fn: (r) => r._measurement == "vehicle_state")
+  |> filter(fn: (r) => r._field == "online")
+  |> group(columns: ["vehicle_id"])
+  |> last()
+  |> group()
+  |> count()
+\end{lstlisting}
+
+\textbf{Aktive Fehler:}
+\begin{lstlisting}[language=SQL]
+from(bucket: "vehicle_data")
+  |> range(start: -24h)
+  |> filter(fn: (r) => r._measurement == "vehicle_errors")
+  |> filter(fn: (r) => r._field == "active")
+  |> group(columns: ["vehicle_id", "error_code"])
+  |> last()
+  |> filter(fn: (r) => r._value == 1)
+\end{lstlisting}
+
+\section{Node-RED Flows}
+\subsection{Hauptflows}
+\begin{verbatim}
+Flow 1: MQTT --> InfluxDB
+[MQTT In] --> [Function: CSV zu Line Protocol] --> [HTTP Request: InfluxDB] --> [Debug]
+
+Flow 2: Alert Detection --> Google Calendar
+[MQTT In] --> [Function: CSV Parser] --> [Switch: Alert Filter] --> [Function: Event Builder] --> [HTTP Request: Calendar Webhook] --> [Debug]
+
+Flow 3: Vehicle Sync Trigger
+[Inject: On Start] --> [HTTP Request: vehicle-sync] --> [Debug]
+\end{verbatim}
+
+\subsection{CSV Parser Logik}
+\begin{itemize}[noitemsep]
+  \item Topic wird per \texttt{/} getrennt, Fahrzeug-ID aus Teil 2 oder \texttt{UNKNOWN}.
+  \item Payload wird getrimmt und per Komma gesplittet.
+  \item Erster Wert bestimmt den Datentyp, wird in Kleinbuchstaben konvertiert.
+  \item Zeitstempel in Nanosekunden: \texttt{Date.now() * 1000000}.
+\end{itemize}
+
+\subsection{HTTP Request Konfiguration}
+\paragraph{InfluxDB Write}
+URL: \texttt{http://influxdb:8086/api/v2/write?org=vehicle\_org\&bucket=vehicle\_data\&precision=ns} \\
+Methode: POST, Header: Authorization Token.
+
+\paragraph{Calendar Webhook}
+URL: \texttt{http://calendar-webhook:5000/event}, Methode: POST, Header: Content-Type: application/json. Body:
+\begin{lstlisting}[language=json]
+{
+  "summary": "[ALARM] Fahrzeug F001 - Kraftstoff niedrig",
+  "description": "Kraftstoffstand unter 10 Liter. Fahrzeug: F001",
+  "duration_minutes": 30,
+  "colorId": "11"
+}
+\end{lstlisting}
+
+\subsection{Alert-Regeln Konfiguration}
+Datei: \texttt{config/alerts.json}
+\begin{lstlisting}[language=json]
+{
+  "google_calendar": {
+    "enabled": true,
+    "calendar_id": "iotwssmartcar@gmail.com"
+  },
+  "alerts": {
+    "fuel_low": {
+      "enabled": true,
+      "threshold": 10.0,
+      "severity": "HOCH",
+      "calendar_duration": 30
+    },
+    "battery_low": {
+      "enabled": true,
+      "threshold": 11.5,
+      "severity": "MITTEL",
+      "calendar_duration": 15
+    },
+    "error_detected": {
+      "enabled": true,
+      "severity": "KRITISCH",
+      "calendar_duration": 60
+    }
+  }
+}
+\end{lstlisting}
+
+\section{Grafana Dashboards}
+\subsection{Hauptdashboard (Flottenuebersicht)}
+UID: \texttt{smart-car-main}.
+\begin{itemize}
+    \item \textbf{Aktive Fahrzeuge (Stat):} Zeigt Anzahl der aktiven Fahrzeuge
+    \item \textbf{Aktive Fehler (Stat):} Anzahl nicht gelöster Fehler
+    \item \textbf{Fahrten 7 Tage (Stat):} Anzahl der Fahrten in den letzten 7 Tagen
+    \item \textbf{Fehler 7 Tage (Stat):} Anzahl der Fehler in den letzten 7 Tagen
+    \item \textbf{Flottenstatus (Stat):} Gesamtstatus der Flotte basierend auf kritischen Werten
+    \item \textbf{Kraftstoff niedrig (Stat):} Anzahl Fahrzeuge mit niedrigem Kraftstoff
+    \item \textbf{Batterie niedrig (Stat):} Anzahl Fahrzeuge mit niedriger Batterie
+    \item \textbf{Heutige Termine (Table):} Tabelle mit den anliegenden Aufgaben des aktuellen Tages
+    \item \textbf{Letzte Fahrten (Table):} Tabelle der letzten Fahrten aller Fahrzeuge
+    \item \textbf{Geschwindigkeitsverlauf (Time Series):} Zeitlicher Verlauf der Fahrzeuggeschwindigkeiten eines Trips
+\end{itemize} 
+
+\subsection{Detail-Dashboard (Fahrzeug Details)}
+UID: \texttt{smart-car-detail}. 
+\begin{itemize}
+    \item \textbf{Fahrzeug-ID (Dropdown Menue):} Anzeige der ausgewählten Fahrzeug-ID
+    \item \textbf{Status (Stat):} Aktueller Fahrzeugstatus (Fahren, Parken)
+    \item \textbf{Kraftstoff (Gauge):} Aktueller Kraftstoffstand in Litern
+    \item \textbf{Batterie (Gauge):} Aktuelle Batteriespannung in Volt
+    \item \textbf{Fahrten 7 Tage (Stat):} Anzahl der Fahrten in den letzten 7 Tagen
+    \item \textbf{Kraftstoffverlauf (Time Series):} Zeitlicher Verlauf des Kraftstoffstands
+    \item \textbf{Batterieverlauf (Time Series):} Zeitlicher Verlauf der Batteriespannung
+    \item \textbf{Letzte Fahrten (Table):} Tabelle der letzten Fahrten des Fahrzeugs
+    \item \textbf{Fahrzeugfehler (Table):} Tabelle der Fehler des Fahrzeugs
+\end{itemize}
+
+
+\subsection{Dashboard-Provisioning}
+\textbf{dashboards.yml}
+\begin{itemize}[noitemsep]
+  \item Die Datei dient zur automatischen Bereitstellung von Dashboards in  Grafana.
+  \item Mit apiVersion: 1 wird festgelegt, welche Version der Provisioning-Schnittstelle verwendet wird.
+  \item Unter „providers“ wird definiert, woher Grafana die Dashboards laden soll.
+  \item Es wird ein Anbieter mit dem Namen „default“ angelegt.
+  \item Die Dashboards werden in einem Ordner mit dem Namen „Smart-Car“ gespeichert und angezeigt.
+  \item Der Typ „file“ bedeutet, dass die Dashboards aus Dateien im Dateisystem geladen werden.
+  \item Unter „options“ wird der Speicherort der Dashboard-Dateien angegeben.
+  \item Der Pfad /etc/grafana/provisioning/dashboards gibt an, in welchem Verzeichnis die JSON-Dashboard-Dateien liegen.
+  \item  Beim Start von Grafana werden alle Dashboards aus diesem Ordner automatisch eingelesen.
+  \item Dadurch müssen Dashboards nicht manuell im Webinterface importiert werden, sondern stehen direkt zur Verfügung.
+\end{itemize}
+
+\section{ESP32 Integration}
+\subsection{Hardware-Setup}
+\textbf{WLAN-Modul} \\
+Standard in ESP32 (802.11 b/g/n, 2.4 GHz).
+
+\textbf{LoRa-Modul (extern)} \\
+Empfohlene Module: SX1276 / SX1278, Frequenz 868 MHz (EU) / 915 MHz (US), Reichweite bis 10 km.
+\\ 
+\\
+Pinbelegung:
+\begin{tabular}{ll}
+\toprule
+LoRa Pin & ESP32 Pin \\
+\midrule
+VCC & 3.3V \\
+GND & GND \\
+SCK & GPIO 18 \\
+MISO & GPIO 19 \\
+MOSI & GPIO 23 \\
+NSS & GPIO 5 \\
+RST & GPIO 14 \\
+DIO0 & GPIO 26 \\
+\bottomrule
+\end{tabular}
+
+\section{Sicherheit}
+\textit{Siehe urspruengliche Dokumentation.} (Abschnitt 9 wurde im Ausgangstext genannt, aber ohne Detailinhalte.)
+
+\section{Troubleshooting}
+\subsection{Haeufige Probleme}
+\paragraph{Container startet nicht}
+\begin{lstlisting}[language=bash]
+# Logs pruefen
+docker-compose logs <service>
+
+# Container neu starten
+docker-compose restart <service>
+\end{lstlisting}
+
+\paragraph{MQTT-Verbindung fehlgeschlagen}
+\begin{lstlisting}[language=bash]
+# Mosquitto-Status pruefen
+docker exec mosquitto mosquitto_sub -t '$SYS/#' -C 1
+
+# Verbindung testen
+docker exec mosquitto mosquitto_pub -t test -m "hello"
+\end{lstlisting}
+
+\paragraph{Keine Daten in InfluxDB}
+\begin{enumerate}[noitemsep]
+  \item Node-RED Debug-Panel pruefen
+  \item InfluxDB-Verbindung in Node-RED testen
+  \item Bucket-Berechtigung pruefen
+\end{enumerate}
+
+\paragraph{Grafana zeigt keine Daten}
+\begin{enumerate}[noitemsep]
+  \item Datenquelle testen (Data Sources --\textgreater{} Test)
+  \item Query im Explore-Modus testen
+  \item Zeitbereich pruefen
+\end{enumerate}
+
+\subsection{Log-Dateien}
+\begin{tabular}{ll}
+\toprule
+Service & Log-Zugang \\
+\midrule
+Mosquitto & docker logs mosquitto oder ./mosquitto/log/ \\
+Node-RED & docker logs node-red \\
+InfluxDB & docker logs influxdb \\
+Grafana & docker logs grafana \\
+\bottomrule
+\end{tabular}
+
+\subsection{Nuetzliche Befehle}
+\begin{lstlisting}[language=bash]
+# Alle Container neustarten
+docker-compose down && docker-compose up -d
+
+# Container-Status
+docker-compose ps
+
+# In Container einloggen
+docker exec -it <container> sh
+
+# Netzwerk pruefen
+docker network inspect smartcar-network
+
+# Ressourcenverbrauch
+docker stats
+\end{lstlisting}
+
+\section{API-Referenz}
+\subsection{Calendar Webhook API}
+Base URL: http://calendar-webhook:5000 (intern) oder http://localhost:5000 (extern).
+
+\paragraph{Health Check}
+\begin{lstlisting}[language=bash]
+curl http://localhost:5000/health
+\end{lstlisting}
+Response:
+\begin{lstlisting}[language=json]
+{
+  "status": "ok",
+  "google_api": true
+}
+\end{lstlisting}
+
+\paragraph{Event erstellen}
+\begin{lstlisting}[language=bash]
+curl -X POST http://localhost:5000/event \
+  -H "Content-Type: application/json" \
+  -d '{
+    "summary": "Test Event",
+    "description": "Test-Beschreibung",
+    "duration_minutes": 30
+  }'
+\end{lstlisting}
+Erfolgs-Response:
+\begin{lstlisting}[language=json]
+{
+  "success": true,
+  "event_id": "abc123...",
+  "link": "https://calendar.google.com/..."
+}
+\end{lstlisting}
+Fehler-Response:
+\begin{lstlisting}[language=json]
+{
+  "success": false,
+  "error": "Fehlerbeschreibung"
+}
+\end{lstlisting}
+
+\textbf{Test-Event}
+\begin{lstlisting}[language=bash]
+curl http://localhost:5000/test
+\end{lstlisting}
+
+\subsection{InfluxDB HTTP API}
+Health Check:
+\begin{lstlisting}[language=bash]
+curl http://localhost:8086/health
+\end{lstlisting}
+
+Query (Flux):
+\begin{lstlisting}[language=bash]
+curl -X POST http://localhost:8086/api/v2/query \
+  -H "Authorization: Token vehicle-admin-token" \
+  -H "Content-Type: application/vnd.flux" \
+  -d 'from(bucket:"vehicle_data") |> range(start:-1h)'
+\end{lstlisting}
+
+Write (Line Protocol):
+\begin{lstlisting}[language=bash]
+curl -X POST "http://localhost:8086/api/v2/write?org=vehicle_org&bucket=vehicle_data&precision=ns" \
+  -H "Authorization: Token vehicle-admin-token" \
+  -H "Content-Type: text/plain" \
+  -d 'vehicle_state,vehicle_id=CAR001,state=idle fuel_l=45.5,battery_v=12.8,online=1i'
+\end{lstlisting}
+
+\subsection{Grafana API}
+Dashboards auflisten:
+\begin{lstlisting}[language=bash]
+curl -u admin:admin http://localhost:3001/api/search
+\end{lstlisting}
+
+Dashboard exportieren:
+\begin{lstlisting}[language=bash]
+curl -u admin:admin http://localhost:3001/api/dashboards/uid/smart-car-main
+\end{lstlisting}
+
+\subsection{Node-RED API}
+Flows exportieren:
+\begin{lstlisting}[language=bash]
+curl http://localhost:1880/flows
+\end{lstlisting}
+
+\subsection{Vehicle Sync Service}
+Fahrzeuge synchronisieren:
+\begin{lstlisting}[language=bash]
+docker exec vehicle-sync python /app/sync_vehicles.py
+\end{lstlisting}
+Oder via HTTP:
+\begin{lstlisting}[language=bash]
+curl -X POST http://localhost:8080/sync
+\end{lstlisting}
+
+\section{Anhang}
+\subsection{Umgebungsvariablen}
+\begin{tabular}{lll}
+\toprule
+Variable & Dienst & Beschreibung \\
+\midrule
+DOCKER\_INFLUXDB\_INIT\_USERNAME & InfluxDB & Admin-Benutzer \\
+DOCKER\_INFLUXDB\_INIT\_PASSWORD & InfluxDB & Admin-Passwort \\
+DOCKER\_INFLUXDB\_INIT\_ORG & InfluxDB & Organisation \\
+DOCKER\_INFLUXDB\_INIT\_BUCKET & InfluxDB & Standard-Bucket \\
+DOCKER\_INFLUXDB\_INIT\_ADMIN\_TOKEN & InfluxDB & API-Token \\
+GF\_SECURITY\_ADMIN\_PASSWORD & Grafana & Admin-Passwort \\
+GOOGLE\_KEY\_FILE & calendar-webhook & Service Account Key Pfad \\
+ALERTS\_FILE & calendar-webhook & Alert-Konfiguration Pfad \\
+\bottomrule
+\end{tabular}
+
+\subsection{Konfigurationsdateien}
+\begin{tabular}{ll}
+\toprule
+Datei & Beschreibung \\
+\midrule
+config/alerts.json & Alert-Regeln und Calendar-Konfiguration \\
+config/vehicles.json & Fahrzeugdaten und -konfiguration \\
+config/google-calendar-key.json & Google Service Account Key \\
+docker-compose.yml & Container-Orchestrierung \\
+node-red/flows.json & Node-RED Flows \\
+node-red/flows\_cred.json & Verschluesselte Credentials \\
+mosquitto/config/mosquitto.conf & MQTT Broker Konfiguration \\
+\bottomrule
+\end{tabular}
+
+\subsection{Google Calendar Integration}
+\paragraph{Service Account Setup}
+\begin{enumerate}[noitemsep]
+  \item Google Cloud Console: \url{https://console.cloud.google.com}
+  \item Projekt erstellen/auswaehlen
+  \item APIs \& Services \textrightarrow{} Library \textrightarrow{} Google Calendar API aktivieren
+  \item IAM \& Admin \textrightarrow{} Service Accounts \textrightarrow{} Service Account erstellen
+  \item Key erstellen (JSON) als \texttt{google-calendar-key.json} speichern
+  \item Kalender mit Service Account Email teilen (Aenderungen vornehmen und Freigabe verwalten)
+\end{enumerate}
+
+\paragraph{Event-Farbcodes}
+\begin{tabular}{lll}
+\toprule
+colorId & Farbe & Verwendung \\
+\midrule
+9 & Blau & Standard-Alarme \\
+6 & Orange & HOCH Prioritaet \\
+11 & Rot & KRITISCH Prioritaet \\
+10 & Gruen & Erfolgreiche Aktionen \\
+\bottomrule
+\end{tabular}
+
+\paragraph{Troubleshooting Calendar}
+\begin{itemize}[noitemsep]
+  \item Invalid JWT Signature: Key ungueltig oder abgelaufen \textrightarrow{} neuen Key erstellen, Container neu starten (docker restart calendar-webhook).
+  \item Calendar not found: Kalender nicht mit Service Account geteilt \textrightarrow{} teilen.
+  \item API not enabled: Google Calendar API nicht aktiviert \textrightarrow{} in Cloud Console aktivieren.
+\end{itemize}
+
+\subsection{Backup und Wiederherstellung}
+\textbf{InfluxDB Backup}
+\begin{lstlisting}[language=bash]
+# Backup erstellen
+docker exec influxdb influx backup /backup -t vehicle-admin-token
+
+# Backup aus Container kopieren
+docker cp influxdb:/backup ./influxdb-backup
+\end{lstlisting}
+
+\textbf{InfluxDB Restore}
+\begin{lstlisting}[language=bash]
+# Backup in Container kopieren
+docker cp ./influxdb-backup influxdb:/restore
+
+# Restore durchfuehren
+docker exec influxdb influx restore /restore -t vehicle-admin-token
+\end{lstlisting}
+
+\textbf{Grafana Dashboards Backup}
+\begin{lstlisting}[language=bash]
+# Alle Dashboards exportieren
+curl -u admin:admin http://localhost:3001/api/search?type=dash-db | \
+  jq -r '.[] | .uid' | \
+  xargs -I {} curl -u admin:admin http://localhost:3001/api/dashboards/uid/{} > dashboard-{}.json
+\end{lstlisting}
+
+\textbf{Node-RED Flows Backup}
+\begin{lstlisting}[language=bash]
+# Flows sichern
+cp node-red/flows.json node-red/flows_backup_$(date +%Y%m%d).json
+cp node-red/flows_cred.json node-red/flows_cred_backup_$(date +%Y%m%d).json
+\end{lstlisting}
+
+\subsection{Referenzen}
+\begin{tabular}{llll}
+\toprule
+Service & Port (Host) & Port (Container) & Zugriff \\
+\midrule
+Mosquitto (MQTT) & 1883 & 1883 & Intern/Extern \\
+Node-RED & 1880 & 1880 & Web-UI \\
+InfluxDB & 8086 & 8086 & API \\
+Grafana & 3001 & 3000 & Web-UI \\
+Calendar Webhook & 5000 & 5000 & API (intern) \\
+\bottomrule
+\end{tabular}
+
+\subsection{Externe Dokumentationen}
+\begin{itemize}[noitemsep]
+  \item InfluxDB 2.x: \url{https://docs.influxdata.com/influxdb/v2/}
+  \item Grafana: \url{https://grafana.com/docs/grafana/latest/}
+  \item Node-RED: \url{https://nodered.org/docs/}
+  \item Eclipse Mosquitto: \url{https://mosquitto.org/documentation/}
+  \item ESP32 Arduino Core: \url{https://docs.espressif.com/projects/arduino-esp32/}
+  \item LoRa Library: \url{https://github.com/sandeepmistry/arduino-LoRa}
+\end{itemize}
+
+\end{document}
