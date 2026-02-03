@@ -643,6 +643,67 @@ DIO0 & GPIO 26 \\
 \bottomrule
 \end{tabular}
 
+\subsection{LoRa TTN Bridge (loraempfang.py)}
+\bigskip
+Die TTN Bridge empfaengt Daten von The Things Network und schreibt sie direkt nach InfluxDB.\\
+
+\textbf{Starten}:\\
+\bigskip
+\texttt{python esp32/lora\_sender/loraempfang.py} \\
+\bigskip
+\textbf{Konfiguration}:\\
+\bigskip
+\begin{tabular}{ll}
+\toprule
+Parameter & Wert \\
+\midrule
+TTN Broker & eu1.cloud.thethings.network \\
+TTN Port & 1883 \\
+InfluxDB URL & http://localhost:8086/ \\
+\bottomrule
+\end{tabular}\\
+
+\textbf{Payload-Format (4 Bytes minimal)}:
+\begin{verbatim}
+[Vehicle_ID, Message_Type, Value1, Value2]
+\end{verbatim}
+\bigskip
+\textbf{Message Types}:\\
+\bigskip
+\bigskip
+\begin{tabular}{lll}
+\toprule
+ID & Typ & Bedeutung \\
+\midrule
+1 & MSG\_STATUS & Fahrstatus (Fuel, Battery10) \\
+2 & MSG\_TRIP\_END & Fahrt beendet (Duration\_min, FuelUsed10) \\
+3 & MSG\_ERROR & Fehlermeldung (ErrorCode, Battery10) \\
+4 & MSG\_IDLE & Fahrzeug steht (Fuel, Battery10) \\
+\bottomrule
+\end{tabular}\\
+\bigskip
+\textbf{Vehicle ID Mapping}:
+\bigskip
+\begin{tabular}{ll}
+\toprule
+ID & Fahrzeugname \\
+\midrule
+1 & Ford\_Siesta \\
+\bottomrule
+\end{tabular}
+
+\textbf{Error Code Mapping}:
+\begin{tabular}{ll}
+\toprule
+Code & Bedeutung \\
+\midrule
+1 & BATTERY\_LOW \\
+2 & CHECK\_ENGINE \\
+3 & LOW\_OIL \\
+4 & TIRE\_PRESSURE \\
+\bottomrule
+\end{tabular}
+
 \section{Sicherheit}
 \textit{Siehe urspruengliche Dokumentation.} (Abschnitt 9 wurde im Ausgangstext genannt, aber ohne Detailinhalte.)
 
@@ -805,6 +866,33 @@ Oder via HTTP:
 \begin{lstlisting}[language=bash]
 curl -X POST http://localhost:8080/sync
 \end{lstlisting}
+
+\section{Reflektion}
+Das Smart-Car Monitoring System wurde in den angegebenen Punkten erfolgreich implementiert und bietet eine robuste Plattform zur Überwachung und Verwaltung von Fahrzeugdaten in Echtzeit. 
+Die Nutzung von MQTT für die Datenübertragung gewährleistet eine effiziente Kommunikation zwischen den ESP32-Geräten und dem Backend. Node-RED ermöglicht eine 
+flexible Datenverarbeitung und Integration mit InfluxDB, die als leistungsfähige Zeitreihendatenbank dient. Grafana bietet ansprechende Visualisierungen und 
+Alarmierungsfunktionen, die den Überblick über die Fahrzeugflotte erleichtern. 
+
+\bigskip
+
+Im Laufe des Projektes mussten wir allerdings feststellen, dass einige geplante Funktionen
+nicht vollständig umgesetzt werden konnten. Grund dafür waren Zeitbeschränkungen und technische Herausforderungen, die den Umfang des Projekts beeinflusst haben.
+Trotz dieser Einschränkungen konnten wir ein funktionierendes System entwickeln, das die Kernanforderungen erfüllt und eine solide Grundlage für zukünftige Erweiterungen bietet. 
+
+\bigskip
+
+Insgesamt sind wir mit dem Ergebnis zufrieden und sehen großes Potenzial für weitere Verbesserungen und Ergänzungen in zukünftigen Iterationen des Projekts.
+
+\subsection{Nicht erfüllte Themen}
+
+\begin{itemize}[noitemsep]
+  \item Auslesen der Daten mittels OBD-II Adapter/CAN Bus
+  \item Energieverwaltung
+  \item Fahrverhalten
+  \item Wetter Routine
+  \item Gyroskop Anbindung
+  \item Sicherheitsaspekte
+\end{itemize}
 
 \section{Anhang}
 \subsection{Umgebungsvariablen}

@@ -44,30 +44,33 @@
 \contentsline {subsection}{\numberline {7.3}Dashboard-Provisioning}{10}{subsection.7.3}%
 \contentsline {section}{\numberline {8}ESP32 Integration}{10}{section.8}%
 \contentsline {subsection}{\numberline {8.1}Hardware-Setup}{10}{subsection.8.1}%
-\contentsline {section}{\numberline {9}Sicherheit}{11}{section.9}%
-\contentsline {section}{\numberline {10}Troubleshooting}{11}{section.10}%
-\contentsline {subsection}{\numberline {10.1}Haeufige Probleme}{11}{subsection.10.1}%
-\contentsline {paragraph}{Container startet nicht}{11}{lstlisting.-8}%
-\contentsline {paragraph}{MQTT-Verbindung fehlgeschlagen}{11}{lstlisting.-9}%
-\contentsline {paragraph}{Keine Daten in InfluxDB}{11}{section*.16}%
-\contentsline {paragraph}{Grafana zeigt keine Daten}{11}{section*.17}%
+\contentsline {subsection}{\numberline {8.2}LoRa TTN Bridge (loraempfang.py)}{11}{subsection.8.2}%
+\contentsline {section}{\numberline {9}Sicherheit}{12}{section.9}%
+\contentsline {section}{\numberline {10}Troubleshooting}{12}{section.10}%
+\contentsline {subsection}{\numberline {10.1}Haeufige Probleme}{12}{subsection.10.1}%
+\contentsline {paragraph}{Container startet nicht}{12}{lstlisting.-8}%
+\contentsline {paragraph}{MQTT-Verbindung fehlgeschlagen}{12}{lstlisting.-9}%
+\contentsline {paragraph}{Keine Daten in InfluxDB}{12}{section*.16}%
+\contentsline {paragraph}{Grafana zeigt keine Daten}{12}{section*.17}%
 \contentsline {subsection}{\numberline {10.2}Log-Dateien}{12}{subsection.10.2}%
 \contentsline {subsection}{\numberline {10.3}Nuetzliche Befehle}{12}{subsection.10.3}%
-\contentsline {section}{\numberline {11}API-Referenz}{12}{section.11}%
-\contentsline {subsection}{\numberline {11.1}Calendar Webhook API}{12}{subsection.11.1}%
-\contentsline {paragraph}{Health Check}{12}{lstlisting.-11}%
-\contentsline {paragraph}{Event erstellen}{12}{lstlisting.-13}%
-\contentsline {subsection}{\numberline {11.2}InfluxDB HTTP API}{13}{subsection.11.2}%
-\contentsline {subsection}{\numberline {11.3}Grafana API}{13}{subsection.11.3}%
-\contentsline {subsection}{\numberline {11.4}Node-RED API}{13}{subsection.11.4}%
-\contentsline {subsection}{\numberline {11.5}Vehicle Sync Service}{14}{subsection.11.5}%
-\contentsline {section}{\numberline {12}Anhang}{14}{section.12}%
-\contentsline {subsection}{\numberline {12.1}Umgebungsvariablen}{14}{subsection.12.1}%
-\contentsline {subsection}{\numberline {12.2}Konfigurationsdateien}{14}{subsection.12.2}%
-\contentsline {subsection}{\numberline {12.3}Google Calendar Integration}{14}{subsection.12.3}%
-\contentsline {paragraph}{Service Account Setup}{14}{section*.20}%
-\contentsline {paragraph}{Event-Farbcodes}{15}{section*.21}%
-\contentsline {paragraph}{Troubleshooting Calendar}{15}{section*.22}%
-\contentsline {subsection}{\numberline {12.4}Backup und Wiederherstellung}{15}{subsection.12.4}%
-\contentsline {subsection}{\numberline {12.5}Referenzen}{16}{subsection.12.5}%
-\contentsline {subsection}{\numberline {12.6}Externe Dokumentationen}{16}{subsection.12.6}%
+\contentsline {section}{\numberline {11}API-Referenz}{13}{section.11}%
+\contentsline {subsection}{\numberline {11.1}Calendar Webhook API}{13}{subsection.11.1}%
+\contentsline {paragraph}{Health Check}{13}{lstlisting.-11}%
+\contentsline {paragraph}{Event erstellen}{13}{lstlisting.-13}%
+\contentsline {subsection}{\numberline {11.2}InfluxDB HTTP API}{14}{subsection.11.2}%
+\contentsline {subsection}{\numberline {11.3}Grafana API}{14}{subsection.11.3}%
+\contentsline {subsection}{\numberline {11.4}Node-RED API}{14}{subsection.11.4}%
+\contentsline {subsection}{\numberline {11.5}Vehicle Sync Service}{15}{subsection.11.5}%
+\contentsline {section}{\numberline {12}Reflektion}{15}{section.12}%
+\contentsline {subsection}{\numberline {12.1}Nicht erfüllte Themen}{15}{subsection.12.1}%
+\contentsline {section}{\numberline {13}Anhang}{16}{section.13}%
+\contentsline {subsection}{\numberline {13.1}Umgebungsvariablen}{16}{subsection.13.1}%
+\contentsline {subsection}{\numberline {13.2}Konfigurationsdateien}{16}{subsection.13.2}%
+\contentsline {subsection}{\numberline {13.3}Google Calendar Integration}{16}{subsection.13.3}%
+\contentsline {paragraph}{Service Account Setup}{16}{section*.20}%
+\contentsline {paragraph}{Event-Farbcodes}{16}{section*.21}%
+\contentsline {paragraph}{Troubleshooting Calendar}{16}{section*.22}%
+\contentsline {subsection}{\numberline {13.4}Backup und Wiederherstellung}{17}{subsection.13.4}%
+\contentsline {subsection}{\numberline {13.5}Referenzen}{17}{subsection.13.5}%
+\contentsline {subsection}{\numberline {13.6}Externe Dokumentationen}{17}{subsection.13.6}%
