@@ -236,6 +236,99 @@ services:
         limits:
           memory: 128M
 
+  # Tire Service: Reifenempfehlung und Kalender-Integration
+  tire-service:
+    image: python:3.11-slim
+    container_name: tire-service
+    restart: unless-stopped
+    ports:
+      - "5003:5003"
+    volumes:
+      - ./config:/config
+    environment:
+      - PORT=5003
+      - WEATHER_SERVICE_URL=http://weather-service:5001
+      - INFLUX_URL=http://influxdb:8086
+      - INFLUX_TOKEN=vehicle-admin-token
+      - INFLUX_ORG=vehicle_org
+      - INFLUX_BUCKET=vehicle_data
+      - GOOGLE_CALENDAR_ID=${GOOGLE_CALENDAR_ID:-primary}
+      - TZ=Europe/Berlin
+    depends_on:
+      - weather-service
+      - influxdb
+    networks:
+      - smartcar-network
+    command: >
+      sh -c "pip install flask requests influxdb-client google-api-python-client google-auth -q && python /config/tire_service.py"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  # Weather Data Collector: Schreibt Wetterdaten periodisch in InfluxDB
+  weather-collector:
+    image: python:3.11-slim
+    container_name: weather-collector
+    restart: unless-stopped
+    volumes:
+      - ./config:/config
+    environment:
+      - WEATHER_SERVICE_URL=http://weather-service:5001
+      - TIRE_SERVICE_URL=http://tire-service:5003
+      - INFLUX_URL=http://influxdb:8086
+      - INFLUX_TOKEN=vehicle-admin-token
+      - INFLUX_ORG=vehicle_org
+      - INFLUX_BUCKET=vehicle_data
+      - COLLECT_INTERVAL=300
+      - TZ=Europe/Berlin
+    depends_on:
+      - weather-service
+      - tire-service
+      - influxdb
+    networks:
+      - smartcar-network
+    command: >
+      sh -c "pip install requests influxdb-client -q && python /config/weather_collector.py"
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+
+  # ESP32 Gateway: Empfängt CAN-Daten vom ESP32 per TCP und sendet sie per MQTT
+  esp-gateway:
+    image: python:3.11-slim
+    container_name: esp-gateway
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./scripts:/scripts
+      - .:/data
+    environment:
+      - ESP_PORT=8080
+      - MQTT_BROKER=mosquitto
+      - MQTT_PORT=1883
+      - SAVE_TO_CSV=true
+      - TZ=Europe/Berlin
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+    networks:
+      - smartcar-network
+    command: >
+      sh -c "pip install paho-mqtt -q && python -u /scripts/esp_gateway.py"
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
 networks:
   smartcar-network:
     driver: bridge

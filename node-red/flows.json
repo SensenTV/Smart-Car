@@ -21,6 +21,13 @@
         "info": "Automatische Benachrichtigungen und Outlook-Kalender Integration"
     },
     {
+        "id": "flow_tires",
+        "type": "tab",
+        "label": "Reifen-Management",
+        "disabled": false,
+        "info": "Reifenwechsel-Empfehlungen nach O-bis-O Regel"
+    },
+    {
         "id": "config_mqtt_internal",
         "type": "mqtt-broker",
         "name": "MQTT Broker (Mosquitto)",
@@ -69,7 +76,7 @@
         "type": "function",
         "z": "flow_main",
         "name": "Validierung",
-        "func": "// Eingabevalidierung vor Parsing\nlet payload = msg.payload;\n\n// Pruefe ob Payload vorhanden\nif (!payload || payload.length === 0) {\n    node.warn('Leere Nachricht empfangen');\n    node.status({fill:'yellow', shape:'ring', text: 'Leer'});\n    return null;\n}\n\n// Pruefe minimale Laenge (type,vid,...)\nif (payload.length < 10) {\n    node.warn('Nachricht zu kurz: ' + payload);\n    node.status({fill:'yellow', shape:'ring', text: 'Zu kurz'});\n    return null;\n}\n\n// Pruefe auf bekannte Typen\nlet type = payload.split(',')[0].toLowerCase();\nlet validTypes = ['state', 'error', 'trip', 'gps', 'alert', 'vehicle_errors', 'imu', 'obd'];\n\nif (!validTypes.includes(type)) {\n    node.warn('Unbekannter Typ: ' + type);\n    node.status({fill:'yellow', shape:'ring', text: 'Typ: ' + type});\n    return null;\n}\n\nnode.status({fill:'green', shape:'dot', text: type});\nreturn msg;",
+        "func": "// Eingabevalidierung vor Parsing\nlet payload = msg.payload;\n\n// Pruefe ob Payload vorhanden\nif (!payload || payload.length === 0) {\n    node.warn('Leere Nachricht empfangen');\n    node.status({fill:'yellow', shape:'ring', text: 'Leer'});\n    return null;\n}\n\n// Pruefe minimale Laenge (type,vid,...)\nif (payload.length < 10) {\n    node.warn('Nachricht zu kurz: ' + payload);\n    node.status({fill:'yellow', shape:'ring', text: 'Zu kurz'});\n    return null;\n}\n\n// Pruefe auf bekannte Typen\nlet type = payload.split(',')[0].toLowerCase();\nlet validTypes = ['state', 'error', 'trip', 'gps', 'alert', 'vehicle_errors', 'imu', 'obd', 'tires'];\n\nif (!validTypes.includes(type)) {\n    node.warn('Unbekannter Typ: ' + type);\n    node.status({fill:'yellow', shape:'ring', text: 'Typ: ' + type});\n    return null;\n}\n\nnode.status({fill:'green', shape:'dot', text: type});\nreturn msg;",
         "outputs": 1,
         "x": 290,
         "y": 100,
@@ -98,7 +105,7 @@
         "type": "function",
         "z": "flow_main",
         "name": "CSV Parser",
-        "func": "/**\n * CSV zu InfluxDB Line Protocol Konverter\n * \n * Unterstuetzte Formate:\n * - state,VID,state_name,fuel,battery\n * - error,VID,error_code,active\n * - trip,VID,trip_id,duration,fuel_used,max_acc,max_brake\n * - gps,VID,lat,lon,speed\n * - alert,VID,alert_type,message\n * - imu,VID,acc_x,acc_y,acc_z,gyro_x,gyro_y,gyro_z\n */\n\nconst topicParts = msg.topic.split('/');\nconst vehicle_id = topicParts[1] || 'UNKNOWN';\nconst cols = msg.payload.toString().trim().split(',');\nconst type = cols[0].toLowerCase();\nconst ts = Date.now() * 1000000; // Nanosekunden\n\nlet line = '';\nlet success = false;\n\ntry {\n    switch(type) {\n        case 'state': {\n            if (cols.length < 5) throw new Error('state braucht 5 Felder');\n            const state = (cols[2] || 'unknown').replace(/[^a-zA-Z0-9]/g, '');\n            const fuel = parseFloat(cols[3]);\n            const battery = parseFloat(cols[4]);\n            \n            if (isNaN(fuel) || isNaN(battery)) throw new Error('Ungueltige Zahlenwerte');\n            if (fuel < 0 || fuel > 100) throw new Error('Kraftstoff ausserhalb Bereich');\n            if (battery < 0 || battery > 20) throw new Error('Batterie ausserhalb Bereich');\n            \n            line = `vehicle_state,vehicle_id=${vehicle_id},state=${state} fuel_l=${fuel},battery_v=${battery},online=1i ${ts}`;\n            success = true;\n            break;\n        }\n        case 'error': {\n            if (cols.length < 4) throw new Error('error braucht 4 Felder');\n            const error_code = cols[2].replace(/[^a-zA-Z0-9_]/g, '');\n            const active = parseInt(cols[3]) === 1 ? 1 : 0;\n            \n            line = `vehicle_errors,vehicle_id=${vehicle_id},error_code=${error_code} active=${active}i ${ts}`;\n            success = true;\n            break;\n        }\n        case 'trip': {\n            if (cols.length < 7) throw new Error('trip braucht min. 7 Felder');\n            const trip_id = cols[2].replace(/[^a-zA-Z0-9_]/g, '');\n            const duration = parseInt(cols[3]) || 0;\n            const fuel_used = parseFloat(cols[4]) || 0;\n            const max_acc = parseFloat(cols[5]) || 0;\n            const max_brake = parseFloat(cols[6]) || 0;\n            \n            line = `trip_summary,vehicle_id=${vehicle_id},trip_id=${trip_id} duration_s=${duration},fuel_used=${fuel_used},max_acceleration=${max_acc},max_braking=${max_brake} ${ts}`;\n            success = true;\n            break;\n        }\n        case 'gps': {\n            if (cols.length < 5) throw new Error('gps braucht 5 Felder');\n            const lat = parseFloat(cols[2]);\n            const lon = parseFloat(cols[3]);\n            const speed = parseFloat(cols[4]) || 0;\n            \n            if (isNaN(lat) || isNaN(lon)) throw new Error('Ungueltige GPS-Koordinaten');\n            if (lat < -90 || lat > 90) throw new Error('Breitengrad ausserhalb Bereich');\n            if (lon < -180 || lon > 180) throw new Error('Laengengrad ausserhalb Bereich');\n            \n            line = `vehicle_gps,vehicle_id=${vehicle_id} latitude=${lat},longitude=${lon},speed_kmh=${speed} ${ts}`;\n            success = true;\n            break;\n        }\n        case 'alert': {\n            if (cols.length < 3) throw new Error('alert braucht min. 3 Felder');\n            const alert_type = cols[2].replace(/[^a-zA-Z0-9_]/g, '');\n            const alert_msg = (cols[3] || '').replace(/\"/g, \"'\");\n            \n            line = `alerts,vehicle_id=${vehicle_id},alert_type=${alert_type} message=\"${alert_msg}\" ${ts}`;\n            success = true;\n            break;\n        }\n        case 'imu': {\n            // Format: imu,VID,acc_x,acc_y,acc_z,gyro_x,gyro_y,gyro_z\n            if (cols.length < 8) throw new Error('imu braucht 8 Felder');\n            const acc_x = parseFloat(cols[2]) || 0;\n            const acc_y = parseFloat(cols[3]) || 0;\n            const acc_z = parseFloat(cols[4]) || 0;\n            const gyro_x = parseFloat(cols[5]) || 0;\n            const gyro_y = parseFloat(cols[6]) || 0;\n            const gyro_z = parseFloat(cols[7]) || 0;\n            \n            // Gesamtbeschleunigung berechnen (G-Force)\n            const total_acc = Math.sqrt(acc_x*acc_x + acc_y*acc_y + acc_z*acc_z);\n            \n            line = `vehicle_imu,vehicle_id=${vehicle_id} acc_x=${acc_x},acc_y=${acc_y},acc_z=${acc_z},gyro_x=${gyro_x},gyro_y=${gyro_y},gyro_z=${gyro_z},total_acceleration=${total_acc.toFixed(3)} ${ts}`;\n            success = true;\n            \n            // Bei starker Beschleunigung/Bremsung Alert ausloesen\n            if (Math.abs(acc_x) > 0.4 || Math.abs(acc_y) > 0.4) {\n                msg.imu_event = {\n                    vehicle_id: vehicle_id,\n                    event_type: acc_x > 0.4 ? 'hard_acceleration' : (acc_x < -0.4 ? 'hard_braking' : 'hard_cornering'),\n                    value: total_acc\n                };\n            }\n            break;\n        }\n        case 'obd': {\n            // Format: obd,VID,speed,coolant_temp,rpm,throttle,battery,fuel_level,mil,dtc_count,oil_temp,intake_temp\n            if (cols.length < 12) throw new Error('obd braucht 12 Felder');\n            const vid = cols[1];\n            const speed = parseFloat(cols[2]) || 0;\n            const coolant = parseFloat(cols[3]) || 0;\n            const rpm = parseFloat(cols[4]) || 0;\n            const throttle = parseFloat(cols[5]) || 0;\n            const battery = parseFloat(cols[6]) || 0;\n            const fuel = parseFloat(cols[7]) || 0;\n            const mil = parseInt(cols[8]) || 0;\n            const dtc_count = parseInt(cols[9]) || 0;\n            const oil_temp = parseFloat(cols[10]) || 0;\n            const intake_temp = parseFloat(cols[11]) || 0;\n            \n            line = `vehicle_obd,vehicle_id=${vid} speed_kmh=${speed},coolant_temp=${coolant},rpm=${rpm},throttle_pct=${throttle},battery_v=${battery},fuel_level=${fuel},mil=${mil}i,dtc_count=${dtc_count}i,oil_temp=${oil_temp},intake_temp=${intake_temp} ${ts}`;\n            success = true;\n            break;\n        }\n        default:\n            throw new Error('Unbekannter Typ: ' + type);\n    }\n    \n    if (success) {\n        msg.payload = line;\n        msg.headers = {\n            'Authorization': 'Token vehicle-admin-token',\n            'Content-Type': 'text/plain; charset=utf-8'\n        };\n        msg._parsed = { type, vehicle_id, timestamp: ts };\n        node.status({fill:'green', shape:'dot', text: `${type} ${vehicle_id}`});\n        return [msg, null];\n    }\n    \n} catch(e) {\n    node.error('Parse-Fehler: ' + e.message, msg);\n    node.status({fill:'red', shape:'ring', text: e.message});\n    msg.error = e.message;\n    return [null, msg];\n}\n\nreturn null;",
+        "func": "/**\n * CSV zu InfluxDB Line Protocol Konverter\n * \n * Unterstuetzte Formate:\n * - state,VID,state_name,fuel,battery\n * - error,VID,error_code,active\n * - trip,VID,trip_id,duration,fuel_used,max_acc,max_brake\n * - gps,VID,lat,lon,speed\n * - alert,VID,alert_type,message\n * - imu,VID,acc_x,acc_y,acc_z,gyro_x,gyro_y,gyro_z\n * - tires,VID,tire_type (wird von tire_service.py behandelt, hier ignoriert)\n */\n\nconst topicParts = msg.topic.split('/');\nconst vehicle_id = topicParts[1] || 'UNKNOWN';\nconst cols = msg.payload.toString().trim().split(',');\nconst type = cols[0].toLowerCase();\nconst ts = Date.now() * 1000000; // Nanosekunden\n\n// Tires werden von tire_service.py ueber HTTP verwaltet, nicht hier\nif (type === 'tires') {\n    node.status({fill:'grey', shape:'ring', text: 'Tires (tire_service)'});\n    return null;\n}\n\nlet line = '';\nlet success = false;\n\ntry {\n    switch(type) {\n        case 'state': {\n            if (cols.length < 5) throw new Error('state braucht 5 Felder');\n            const state = (cols[2] || 'unknown').replace(/[^a-zA-Z0-9]/g, '');\n            const fuel = parseFloat(cols[3]);\n            const battery = parseFloat(cols[4]);\n            \n            if (isNaN(fuel) || isNaN(battery)) throw new Error('Ungueltige Zahlenwerte');\n            if (fuel < 0 || fuel > 100) throw new Error('Kraftstoff ausserhalb Bereich');\n            if (battery < 0 || battery > 20) throw new Error('Batterie ausserhalb Bereich');\n            \n            line = `vehicle_state,vehicle_id=${vehicle_id},state=${state} fuel_l=${fuel},battery_v=${battery},online=1i ${ts}`;\n            success = true;\n            break;\n        }\n        case 'error': {\n            if (cols.length < 4) throw new Error('error braucht 4 Felder');\n            const error_code = cols[2].replace(/[^a-zA-Z0-9_]/g, '');\n            const active = parseInt(cols[3]) === 1 ? 1 : 0;\n            \n            line = `vehicle_errors,vehicle_id=${vehicle_id},error_code=${error_code} active=${active}i ${ts}`;\n            success = true;\n            break;\n        }\n        case 'trip': {\n            if (cols.length < 7) throw new Error('trip braucht min. 7 Felder');\n            const trip_id = cols[2].replace(/[^a-zA-Z0-9_]/g, '');\n            const duration = parseInt(cols[3]) || 0;\n            const fuel_used = parseFloat(cols[4]) || 0;\n            const max_acc = parseFloat(cols[5]) || 0;\n            const max_brake = parseFloat(cols[6]) || 0;\n            \n            line = `trip_summary,vehicle_id=${vehicle_id},trip_id=${trip_id} duration_s=${duration},fuel_used=${fuel_used},max_acceleration=${max_acc},max_braking=${max_brake} ${ts}`;\n            success = true;\n            break;\n        }\n        case 'gps': {\n            if (cols.length < 5) throw new Error('gps braucht 5 Felder');\n            const lat = parseFloat(cols[2]);\n            const lon = parseFloat(cols[3]);\n            const speed = parseFloat(cols[4]) || 0;\n            \n            if (isNaN(lat) || isNaN(lon)) throw new Error('Ungueltige GPS-Koordinaten');\n            if (lat < -90 || lat > 90) throw new Error('Breitengrad ausserhalb Bereich');\n            if (lon < -180 || lon > 180) throw new Error('Laengengrad ausserhalb Bereich');\n            \n            line = `vehicle_gps,vehicle_id=${vehicle_id} latitude=${lat},longitude=${lon},speed_kmh=${speed} ${ts}`;\n            success = true;\n            break;\n        }\n        case 'alert': {\n            if (cols.length < 3) throw new Error('alert braucht min. 3 Felder');\n            const alert_type = cols[2].replace(/[^a-zA-Z0-9_]/g, '');\n            const alert_msg = (cols[3] || '').replace(/\"/g, \"'\");\n            \n            line = `alerts,vehicle_id=${vehicle_id},alert_type=${alert_type} message=\"${alert_msg}\" ${ts}`;\n            success = true;\n            break;\n        }\n        case 'imu': {\n            // Format: imu,VID,acc_x,acc_y,acc_z,gyro_x,gyro_y,gyro_z\n            if (cols.length < 8) throw new Error('imu braucht 8 Felder');\n            const acc_x = parseFloat(cols[2]) || 0;\n            const acc_y = parseFloat(cols[3]) || 0;\n            const acc_z = parseFloat(cols[4]) || 0;\n            const gyro_x = parseFloat(cols[5]) || 0;\n            const gyro_y = parseFloat(cols[6]) || 0;\n            const gyro_z = parseFloat(cols[7]) || 0;\n            \n            // Gesamtbeschleunigung berechnen (G-Force)\n            const total_acc = Math.sqrt(acc_x*acc_x + acc_y*acc_y + acc_z*acc_z);\n            \n            line = `vehicle_imu,vehicle_id=${vehicle_id} acc_x=${acc_x},acc_y=${acc_y},acc_z=${acc_z},gyro_x=${gyro_x},gyro_y=${gyro_y},gyro_z=${gyro_z},total_acceleration=${total_acc.toFixed(3)} ${ts}`;\n            success = true;\n            \n            // Bei starker Beschleunigung/Bremsung Alert ausloesen\n            if (Math.abs(acc_x) > 0.4 || Math.abs(acc_y) > 0.4) {\n                msg.imu_event = {\n                    vehicle_id: vehicle_id,\n                    event_type: acc_x > 0.4 ? 'hard_acceleration' : (acc_x < -0.4 ? 'hard_braking' : 'hard_cornering'),\n                    value: total_acc\n                };\n            }\n            break;\n        }\n        case 'obd': {\n            // Format: obd,VID,speed,coolant_temp,rpm,throttle,battery,fuel_level,mil,dtc_count,oil_temp,intake_temp\n            if (cols.length < 12) throw new Error('obd braucht 12 Felder');\n            const vid = cols[1];\n            const speed = parseFloat(cols[2]) || 0;\n            const coolant = parseFloat(cols[3]) || 0;\n            const rpm = parseFloat(cols[4]) || 0;\n            const throttle = parseFloat(cols[5]) || 0;\n            const battery = parseFloat(cols[6]) || 0;\n            const fuel = parseFloat(cols[7]) || 0;\n            const mil = parseInt(cols[8]) || 0;\n            const dtc_count = parseInt(cols[9]) || 0;\n            const oil_temp = parseFloat(cols[10]) || 0;\n            const intake_temp = parseFloat(cols[11]) || 0;\n            \n            line = `vehicle_obd,vehicle_id=${vid} speed_kmh=${speed},coolant_temp=${coolant},rpm=${rpm},throttle_pct=${throttle},battery_v=${battery},fuel_level=${fuel},mil=${mil}i,dtc_count=${dtc_count}i,oil_temp=${oil_temp},intake_temp=${intake_temp} ${ts}`;\n            success = true;\n            break;\n        }\n        default:\n            throw new Error('Unbekannter Typ: ' + type);\n    }\n    \n    if (success) {\n        msg.payload = line;\n        msg.headers = {\n            'Authorization': 'Token vehicle-admin-token',\n            'Content-Type': 'text/plain; charset=utf-8'\n        };\n        msg._parsed = { type, vehicle_id, timestamp: ts };\n        node.status({fill:'green', shape:'dot', text: `${type} ${vehicle_id}`});\n        return [msg, null];\n    }\n    \n} catch(e) {\n    node.error('Parse-Fehler: ' + e.message, msg);\n    node.status({fill:'red', shape:'ring', text: e.message});\n    msg.error = e.message;\n    return [null, msg];\n}\n\nreturn null;",
         "outputs": 2,
         "x": 430,
         "y": 100,
@@ -484,7 +491,7 @@
         "payload": "set_fuel:50",
         "payloadType": "str",
         "x": 140,
-        "y": 540,
+        "y": 700,
         "wires": [
             [
                 "func_controller"
@@ -509,7 +516,7 @@
         "payload": "set_fuel:25",
         "payloadType": "str",
         "x": 140,
-        "y": 580,
+        "y": 740,
         "wires": [
             [
                 "func_controller"
@@ -534,7 +541,7 @@
         "payload": "set_fuel:8",
         "payloadType": "str",
         "x": 140,
-        "y": 620,
+        "y": 780,
         "wires": [
             [
                 "func_controller"
@@ -559,7 +566,7 @@
         "payload": "set_battery:13.8",
         "payloadType": "str",
         "x": 160,
-        "y": 660,
+        "y": 820,
         "wires": [
             [
                 "func_controller"
@@ -584,7 +591,7 @@
         "payload": "set_battery:12.5",
         "payloadType": "str",
         "x": 150,
-        "y": 700,
+        "y": 860,
         "wires": [
             [
                 "func_controller"
@@ -609,7 +616,7 @@
         "payload": "set_battery:10.5",
         "payloadType": "str",
         "x": 180,
-        "y": 740,
+        "y": 900,
         "wires": [
             [
                 "func_controller"
@@ -784,7 +791,7 @@
         "payload": "tick",
         "payloadType": "str",
         "x": 140,
-        "y": 780,
+        "y": 500,
         "wires": [
             [
                 "func_controller"
@@ -809,7 +816,7 @@
         "payload": "start_sim",
         "payloadType": "str",
         "x": 150,
-        "y": 820,
+        "y": 540,
         "wires": [
             [
                 "func_controller"
@@ -834,7 +841,7 @@
         "payload": "stop_sim",
         "payloadType": "str",
         "x": 140,
-        "y": 860,
+        "y": 580,
         "wires": [
             [
                 "func_controller"
@@ -846,7 +853,7 @@
         "type": "function",
         "z": "flow_test",
         "name": "Controller",
-        "func": "// Simulation Controller\n// Start/Stop über Flow-Variable steuerbar\nconst cmd = msg.payload;\n\n// Start/Stop-Logik\nif (cmd === 'start_sim') {\n    flow.set('sim_active', true);\n    node.status({fill:'green', shape:'dot', text: 'Simulation: AN'});\n    return null;\n}\nif (cmd === 'stop_sim') {\n    flow.set('sim_active', false);\n    node.status({fill:'red', shape:'dot', text: 'Simulation: AUS'});\n    return null;\n}\n\n// Manueller Status setzen\nif (cmd === 'set_driving') {\n    flow.set('manual_state', 'driving');\n    node.status({fill:'green', shape:'dot', text: 'Status: driving'});\n    return msg;\n}\nif (cmd === 'set_parked') {\n    flow.set('manual_state', 'parked');\n    node.status({fill:'blue', shape:'dot', text: 'Status: parked'});\n    return msg;\n}\nif (cmd === 'set_error') {\n    flow.set('manual_state', 'error');\n    node.status({fill:'red', shape:'dot', text: 'Status: error'});\n    return msg;\n}\n\n// Manuelle Werte setzen\nif (cmd.startsWith('set_fuel:')) {\n    const value = parseFloat(cmd.split(':')[1]);\n    flow.set('manual_fuel', value);\n    node.status({fill:'orange', shape:'dot', text: 'Tank: ' + value + 'L'});\n    return msg;\n}\nif (cmd.startsWith('set_battery:')) {\n    const value = parseFloat(cmd.split(':')[1]);\n    flow.set('manual_battery', value);\n    node.status({fill:'yellow', shape:'dot', text: 'Batterie: ' + value + 'V'});\n    return msg;\n}\n\n// Tick - nur senden wenn aktiv\nif (cmd === 'tick') {\n    if (flow.get('sim_active')) {\n        const state = flow.get('manual_state') || 'parked';\n        node.status({fill:'green', shape:'dot', text: 'Aktiv: ' + state});\n        return msg;\n    } else {\n        node.status({fill:'grey', shape:'ring', text: 'Simulation AUS'});\n        return null;\n    }\n}\n\nreturn null;",
+        "func": "// Simulation Controller\n// Start/Stop über Flow-Variable steuerbar\nconst cmd = msg.payload;\n\n// Start/Stop-Logik\nif (cmd === 'start_sim') {\n    flow.set('sim_active', true);\n    node.status({fill:'green', shape:'dot', text: 'Simulation: AN'});\n    return null;\n}\nif (cmd === 'stop_sim') {\n    flow.set('sim_active', false);\n    node.status({fill:'red', shape:'dot', text: 'Simulation: AUS'});\n    return null;\n}\n\n// Manueller Status setzen\nif (cmd === 'set_driving') {\n    flow.set('manual_state', 'driving');\n    node.status({fill:'green', shape:'dot', text: 'Status: driving'});\n    return msg;\n}\nif (cmd === 'set_parked') {\n    flow.set('manual_state', 'parked');\n    node.status({fill:'blue', shape:'dot', text: 'Status: parked'});\n    return msg;\n}\nif (cmd === 'set_error') {\n    flow.set('manual_state', 'error');\n    node.status({fill:'red', shape:'dot', text: 'Status: error'});\n    return msg;\n}\n\n// Manuelle Werte setzen\nif (cmd.startsWith('set_fuel:')) {\n    const value = parseFloat(cmd.split(':')[1]);\n    flow.set('manual_fuel', value);\n    node.status({fill:'orange', shape:'dot', text: 'Tank: ' + value + 'L'});\n    return msg;\n}\nif (cmd.startsWith('set_battery:')) {\n    const value = parseFloat(cmd.split(':')[1]);\n    flow.set('manual_battery', value);\n    node.status({fill:'yellow', shape:'dot', text: 'Batterie: ' + value + 'V'});\n    return msg;\n}\nif (cmd === 'set_tires:summer') {\n    flow.set('manual_tires', 'summer');\n    node.status({fill:'#FFC107', shape:'dot', text: 'Reifen: Sommer'});\n    return msg;\n}\nif (cmd === 'set_tires:winter') {\n    flow.set('manual_tires', 'winter');\n    node.status({fill:'#2196F3', shape:'dot', text: 'Reifen: Winter'});\n    return msg;\n}\n\n// Tick - nur senden wenn aktiv\nif (cmd === 'tick') {\n    if (flow.get('sim_active')) {\n        const state = flow.get('manual_state') || 'parked';\n        node.status({fill:'green', shape:'dot', text: 'Aktiv: ' + state});\n        return msg;\n    } else {\n        node.status({fill:'grey', shape:'ring', text: 'Simulation AUS'});\n        return null;\n    }\n}\n\nreturn null;",
         "outputs": 1,
         "x": 420,
         "y": 500,
@@ -861,7 +868,7 @@
         "type": "function",
         "z": "flow_test",
         "name": "TEST001-Simulator",
-        "func": "/**\n * Simuliert Fahrzeugdaten fuer TEST001\n * Status, Tank und Batterie koennen manuell gesetzt werden\n * Generiert automatisch Trips wenn Status von driving wechselt\n */\n\nconst VEHICLE = 'TEST001';\n\n// Fahrzeugkontext laden oder initialisieren\nlet v = context.get('vehicle') || {\n    fuel: 30 + Math.random() * 30,\n    battery: 12.2 + Math.random() * 1.5,\n    state: 'parked',\n    prevState: 'parked',\n    lat: 52.52 + (Math.random() - 0.5) * 0.1,\n    lon: 13.405 + (Math.random() - 0.5) * 0.1,\n    tripCounter: context.get('tripCounter') || 0,\n    tripStartTime: null,\n    tripStartFuel: null\n};\n\n// Manuelle Werte uebernehmen falls gesetzt\nconst manualState = flow.get('manual_state');\nconst manualFuel = flow.get('manual_fuel');\nconst manualBattery = flow.get('manual_battery');\n\nconst prevState = v.state;\n\nif (manualState) {\n    v.state = manualState;\n}\nif (manualFuel !== undefined && manualFuel !== null) {\n    v.fuel = manualFuel;\n    flow.set('manual_fuel', null);\n}\nif (manualBattery !== undefined && manualBattery !== null) {\n    v.battery = manualBattery;\n    flow.set('manual_battery', null);\n}\n\n// Trip-Logik: Start wenn driving beginnt, Ende wenn driving endet\nlet tripMsg = null;\n\nif (prevState !== 'driving' && v.state === 'driving') {\n    // Fahrt beginnt\n    v.tripStartTime = Date.now();\n    v.tripStartFuel = v.fuel;\n    node.warn('Fahrt gestartet');\n}\n\nif (prevState === 'driving' && v.state !== 'driving') {\n    // Fahrt endet - Trip generieren\n    v.tripCounter++;\n    const tripId = 'TRIP_' + VEHICLE + '_' + String(v.tripCounter).padStart(3, '0');\n    const duration = Math.floor((Date.now() - (v.tripStartTime || Date.now())) / 1000);\n    const fuelUsed = Math.max(0, (v.tripStartFuel || v.fuel) - v.fuel).toFixed(2);\n    const maxAcc = (2.5 + Math.random() * 2.5).toFixed(2);\n    const maxBrake = (3.0 + Math.random() * 3.0).toFixed(2);\n    \n    tripMsg = {\n        topic: 'smartcar/' + VEHICLE,\n        payload: `trip,${VEHICLE},${tripId},${duration},${fuelUsed},${maxAcc},${maxBrake}`\n    };\n    node.warn('Fahrt beendet: ' + tripId + ', Dauer: ' + duration + 's, Verbrauch: ' + fuelUsed + 'L');\n    \n    v.tripStartTime = null;\n    v.tripStartFuel = null;\n}\n\nv.prevState = v.state;\n\n// Werte basierend auf Zustand aendern\nswitch(v.state) {\n    case 'driving':\n        v.fuel = Math.max(5, v.fuel - 0.2 - Math.random() * 0.3);\n        v.battery = Math.max(11.5, v.battery - 0.01 + Math.random() * 0.02);\n        v.lat += (Math.random() - 0.5) * 0.002;\n        v.lon += (Math.random() - 0.5) * 0.002;\n        break;\n    case 'parked':\n    case 'idle':\n        v.battery = Math.min(14.0, v.battery + 0.01);\n        break;\n}\n\ncontext.set('vehicle', v);\ncontext.set('tripCounter', v.tripCounter);\n\n// State-Nachricht erstellen\nmsg.topic = 'smartcar/' + VEHICLE;\nmsg.payload = `state,${VEHICLE},${v.state},${v.fuel.toFixed(1)},${v.battery.toFixed(2)}`;\n\nnode.status({fill:'blue', shape:'dot', text: `${v.fuel.toFixed(0)}L | ${v.battery.toFixed(1)}V | ${v.state} | Trips: ${v.tripCounter}`});\n\n// GPS bei driving (30% Chance)\nlet gpsMsg = null;\nif (Math.random() < 0.3 && v.state === 'driving') {\n    const speed = 30 + Math.floor(Math.random() * 90);\n    gpsMsg = {\n        topic: 'smartcar/' + VEHICLE,\n        payload: `gps,${VEHICLE},${v.lat.toFixed(4)},${v.lon.toFixed(4)},${speed}`\n    };\n}\n\nreturn [[msg, gpsMsg, tripMsg].filter(m => m !== null)];",
+        "func": "/**\n * Simuliert Fahrzeugdaten fuer TEST001\n * Status, Tank und Batterie koennen manuell gesetzt werden\n * Generiert automatisch Trips wenn Status von driving wechselt\n */\n\nconst VEHICLE = 'TEST001';\n\n// Fahrzeugkontext laden oder initialisieren\nlet v = context.get('vehicle') || {\n    fuel: 30 + Math.random() * 30,\n    battery: 12.2 + Math.random() * 1.5,\n    state: 'parked',\n    prevState: 'parked',\n    lat: 52.52 + (Math.random() - 0.5) * 0.1,\n    lon: 13.405 + (Math.random() - 0.5) * 0.1,\n    tripCounter: context.get('tripCounter') || 0,\n    tripStartTime: null,\n    tripStartFuel: null,\n    tires: 'winter'\n};\n\n// Manuelle Werte uebernehmen falls gesetzt\nconst manualState = flow.get('manual_state');\nconst manualFuel = flow.get('manual_fuel');\nconst manualBattery = flow.get('manual_battery');\nconst manualTires = flow.get('manual_tires');\n\nconst prevState = v.state;\n\nif (manualState) {\n    v.state = manualState;\n}\nif (manualFuel !== undefined && manualFuel !== null) {\n    v.fuel = manualFuel;\n    flow.set('manual_fuel', null);\n}\nif (manualBattery !== undefined && manualBattery !== null) {\n    v.battery = manualBattery;\n    flow.set('manual_battery', null);\n}\nif (manualTires !== undefined && manualTires !== null) {\n    v.tires = manualTires;\n    flow.set('manual_tires', null);\n}\n\n// Trip-Logik: Start wenn driving beginnt, Ende wenn driving endet\nlet tripMsg = null;\n\nif (prevState !== 'driving' && v.state === 'driving') {\n    // Fahrt beginnt\n    v.tripStartTime = Date.now();\n    v.tripStartFuel = v.fuel;\n    node.warn('Fahrt gestartet');\n}\n\nif (prevState === 'driving' && v.state !== 'driving') {\n    // Fahrt endet - Trip generieren\n    v.tripCounter++;\n    const tripId = 'TRIP_' + VEHICLE + '_' + String(v.tripCounter).padStart(3, '0');\n    const duration = Math.floor((Date.now() - (v.tripStartTime || Date.now())) / 1000);\n    const fuelUsed = Math.max(0, (v.tripStartFuel || v.fuel) - v.fuel).toFixed(2);\n    const maxAcc = (2.5 + Math.random() * 2.5).toFixed(2);\n    const maxBrake = (3.0 + Math.random() * 3.0).toFixed(2);\n    \n    tripMsg = {\n        topic: 'smartcar/' + VEHICLE,\n        payload: `trip,${VEHICLE},${tripId},${duration},${fuelUsed},${maxAcc},${maxBrake}`\n    };\n    node.warn('Fahrt beendet: ' + tripId + ', Dauer: ' + duration + 's, Verbrauch: ' + fuelUsed + 'L');\n    \n    v.tripStartTime = null;\n    v.tripStartFuel = null;\n}\n\nv.prevState = v.state;\n\n// Werte basierend auf Zustand aendern\nswitch(v.state) {\n    case 'driving':\n        v.fuel = Math.max(5, v.fuel - 0.2 - Math.random() * 0.3);\n        v.battery = Math.max(11.5, v.battery - 0.01 + Math.random() * 0.02);\n        v.lat += (Math.random() - 0.5) * 0.002;\n        v.lon += (Math.random() - 0.5) * 0.002;\n        break;\n    case 'parked':\n    case 'idle':\n        v.battery = Math.min(14.0, v.battery + 0.01);\n        break;\n}\n\ncontext.set('vehicle', v);\ncontext.set('tripCounter', v.tripCounter);\n\n// State-Nachricht erstellen\nmsg.topic = 'smartcar/' + VEHICLE;\nmsg.payload = `state,${VEHICLE},${v.state},${v.fuel.toFixed(1)},${v.battery.toFixed(2)}`;\n\nnode.status({fill:'blue', shape:'dot', text: `${v.fuel.toFixed(0)}L | ${v.battery.toFixed(1)}V | ${v.state} | Reifen: ${v.tires} | Trips: ${v.tripCounter}`});\n\n// Reifen-Nachricht erstellen (wird von tire_service.py geparsed)\nlet tireMsg = {\n    topic: 'smartcar/' + VEHICLE,\n    payload: `tires,${VEHICLE},${v.tires}`\n};\n\n// GPS bei driving (30% Chance)\nlet gpsMsg = null;\nif (Math.random() < 0.3 && v.state === 'driving') {\n    const speed = 30 + Math.floor(Math.random() * 90);\n    gpsMsg = {\n        topic: 'smartcar/' + VEHICLE,\n        payload: `gps,${VEHICLE},${v.lat.toFixed(4)},${v.lon.toFixed(4)},${speed}`\n    };\n}\n\nreturn [[msg, tireMsg, gpsMsg, tripMsg].filter(m => m !== null)];",
         "outputs": 1,
         "x": 730,
         "y": 460,
@@ -873,6 +880,74 @@
         "outputLabels": [
             "Alle Nachrichten"
         ]
+    },
+    {
+        "id": "inject_tires_summer",
+        "type": "inject",
+        "z": "flow_test",
+        "name": "Reifen SOMMER",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "set_tires:summer",
+        "payloadType": "str",
+        "x": 140,
+        "y": 620,
+        "wires": [
+            [
+                "func_controller",
+                "func_tire_format",
+                "debug_tires"
+            ]
+        ]
+    },
+    {
+        "id": "inject_tires_winter",
+        "type": "inject",
+        "z": "flow_test",
+        "name": "Reifen WINTER",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "set_tires:winter",
+        "payloadType": "str",
+        "x": 140,
+        "y": 660,
+        "wires": [
+            [
+                "func_controller",
+                "func_tire_format",
+                "debug_tires"
+            ]
+        ]
+    },
+    {
+        "id": "debug_tires",
+        "type": "debug",
+        "z": "flow_test",
+        "name": "DEBUG: Reifen",
+        "active": true,
+        "tosidebar": true,
+        "console": true,
+        "tostatus": false,
+        "complete": "payload",
+        "x": 470,
+        "y": 640,
+        "wires": []
     },
     {
         "id": "mqtt_out_test",
@@ -891,6 +966,59 @@
         "x": 1200,
         "y": 340,
         "wires": []
+    },
+    {
+        "id": "http_set_tires",
+        "type": "http request",
+        "z": "flow_test",
+        "name": "HTTP: Set Tires",
+        "method": "POST",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "http://tire-service:5003/tires/set/TEST001",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": true,
+        "headers": [],
+        "x": 920,
+        "y": 640,
+        "wires": [
+            [
+                "debug_http_tires"
+            ]
+        ]
+    },
+    {
+        "id": "debug_http_tires",
+        "type": "debug",
+        "z": "flow_test",
+        "name": "DEBUG: HTTP Response",
+        "active": true,
+        "tosidebar": true,
+        "console": true,
+        "tostatus": false,
+        "complete": "true",
+        "x": 1160,
+        "y": 640,
+        "wires": []
+    },
+    {
+        "id": "func_tire_format",
+        "type": "function",
+        "z": "flow_test",
+        "name": "Format Tire Request",
+        "func": "// Formatiert die Reifen-Nachricht für den HTTP Request\nconst cmd = msg.payload;\n\nif (cmd === 'set_tires:summer') {\n    msg.payload = JSON.stringify({current: 'summer'});\n    msg.headers = {'Content-Type': 'application/json'};\n    return msg;\n}\nif (cmd === 'set_tires:winter') {\n    msg.payload = JSON.stringify({current: 'winter'});\n    msg.headers = {'Content-Type': 'application/json'};\n    return msg;\n}\n\nreturn null;",
+        "outputs": 1,
+        "x": 700,
+        "y": 640,
+        "wires": [
+            [
+                "http_set_tires"
+            ]
+        ]
     },
     {
         "id": "comment_alerts_header",
@@ -1333,5 +1461,297 @@
                 "func_alert_parser"
             ]
         ]
+    },
+    {
+        "id": "comment_tires_header",
+        "type": "comment",
+        "z": "flow_tires",
+        "name": "=== REIFEN-MANAGEMENT (O-bis-O) ===",
+        "info": "Prueft taeglich um 8:00:\n- Temperatur & Wetter\n- O-bis-O Regel (Okt-Ostern=Winter)\n- Erstellt Kalender-Events fuer Reifenwechsel",
+        "x": 220,
+        "y": 40,
+        "wires": []
+    },
+    {
+        "id": "inject_tire_check_daily",
+        "type": "inject",
+        "z": "flow_tires",
+        "name": "Taeglich 8:00",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "0 8 * * *",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "check",
+        "payloadType": "str",
+        "x": 130,
+        "y": 120,
+        "wires": [
+            [
+                "http_tire_check"
+            ]
+        ]
+    },
+    {
+        "id": "inject_tire_manual",
+        "type": "inject",
+        "z": "flow_tires",
+        "name": "Manuell pruefen",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "check",
+        "payloadType": "str",
+        "x": 140,
+        "y": 180,
+        "wires": [
+            [
+                "http_tire_check"
+            ]
+        ]
+    },
+    {
+        "id": "http_tire_check",
+        "type": "http request",
+        "z": "flow_tires",
+        "name": "Tire Service API",
+        "method": "GET",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "http://tire-service:5003/tires/check",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": true,
+        "headers": [],
+        "x": 350,
+        "y": 150,
+        "wires": [
+            [
+                "func_process_tire_result",
+                "debug_tire_api"
+            ]
+        ]
+    },
+    {
+        "id": "debug_tire_api",
+        "type": "debug",
+        "z": "flow_tires",
+        "name": "API Response",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "x": 550,
+        "y": 210,
+        "wires": []
+    },
+    {
+        "id": "func_process_tire_result",
+        "type": "function",
+        "z": "flow_tires",
+        "name": "Ergebnis verarbeiten",
+        "func": "// Tire Service Response verarbeiten\nconst result = msg.payload;\n\nif (!result || !result.vehicles) {\n    node.status({fill:'red', shape:'ring', text: 'Fehler'});\n    return null;\n}\n\nconst alerts = [];\nconst recommendation = result.recommendation;\n\n// Pruefe jedes Fahrzeug\nfor (const vehicle of result.vehicles) {\n    const statusValue = vehicle.status_value || 0;\n    const currentTires = vehicle.current_tires;\n    const recommended = recommendation.recommended;\n    \n    // Status-Werte:\n    // 3 = WECHSEL DRINGEND (Schnee/Eis)\n    // 2 = WECHSEL EMPFOHLEN (Saison/Temp)\n    // 1 = Ganzjahresreifen OK\n    // 0 = Passend\n    \n    if (statusValue >= 2) {\n        const priority = statusValue === 3 ? 'critical' : 'medium';\n        const deadlineHours = statusValue === 3 ? 2 : 72;\n        \n        const tireEmoji = recommended === 'winter' ? '❄️' : '☀️';\n        const tireType = recommended === 'winter' ? 'Winterreifen' : 'Sommerreifen';\n        \n        alerts.push({\n            type: 'tire_change',\n            priority: priority,\n            deadline_hours: deadlineHours,\n            title: tireEmoji + ' Reifenwechsel: ' + tireType,\n            message: vehicle.display_name + ' hat aktuell ' + \n                    (currentTires === 'winter' ? 'Winterreifen' : 'Sommerreifen') + \n                    ' montiert.\\n\\nEmpfehlung: ' + tireType + \n                    '\\nGrund: ' + recommendation.label +\n                    '\\n\\nTemperatur: ' + recommendation.temperature.toFixed(1) + '°C' +\n                    (recommendation.is_winter_season ? '\\nO-bis-O: Wintersaison' : '\\nO-bis-O: Sommersaison'),\n            vehicle_id: vehicle.vehicle_id,\n            value: statusValue,\n            duration_minutes: 120\n        });\n    }\n}\n\nif (alerts.length === 0) {\n    node.status({fill:'green', shape:'dot', text: 'Alle Reifen OK'});\n    return null;\n}\n\nnode.status({fill:'orange', shape:'dot', text: alerts.length + ' Fahrzeug(e) Wechsel noetig'});\nnode.warn('Reifenwechsel empfohlen fuer ' + alerts.length + ' Fahrzeug(e)');\n\nreturn alerts.map(a => ({payload: a}));",
+        "outputs": 1,
+        "x": 580,
+        "y": 150,
+        "wires": [
+            [
+                "func_tire_calendar",
+                "mqtt_out_tire_alert"
+            ]
+        ]
+    },
+    {
+        "id": "mqtt_out_tire_alert",
+        "type": "mqtt out",
+        "z": "flow_tires",
+        "name": "MQTT Tire Alert",
+        "topic": "smartcar/alerts/tires",
+        "qos": "1",
+        "retain": "false",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "config_mqtt_internal",
+        "x": 830,
+        "y": 210,
+        "wires": []
+    },
+    {
+        "id": "func_tire_calendar",
+        "type": "function",
+        "z": "flow_tires",
+        "name": "Kalender-Event erstellen",
+        "func": "// Kalender-Event fuer Reifenwechsel\nconst alert = msg.payload;\n\nconst prioColors = {\n    critical: '11',\n    high: '6',\n    medium: '5',\n    low: '9'\n};\n\nconst deadlineHours = alert.deadline_hours || 72;\n\n// Startzeit: Samstag Vormittag wenn moeglich\nconst startTime = new Date();\nstartTime.setHours(startTime.getHours() + deadlineHours);\n\n// Runde auf naechste Stunde\nstartTime.setMinutes(0, 0, 0);\n\n// Wenn unter der Woche, verschiebe auf Samstag 10:00\nconst dayOfWeek = startTime.getDay();\nif (dayOfWeek !== 0 && dayOfWeek !== 6 && alert.priority !== 'critical') {\n    // Tage bis Samstag\n    const daysUntilSat = (6 - dayOfWeek + 7) % 7 || 7;\n    startTime.setDate(startTime.getDate() + daysUntilSat);\n    startTime.setHours(10, 0, 0, 0);\n}\n\nconst endTime = new Date(startTime);\nendTime.setMinutes(endTime.getMinutes() + (alert.duration_minutes || 120));\n\nconst prioLabel = alert.priority === 'critical' ? '[DRINGEND] ' : '';\n\nmsg.payload = {\n    summary: prioLabel + alert.title,\n    description: alert.message + '\\n\\n---\\nAutomatisch erstellt von Smart-Car',\n    start: {\n        dateTime: startTime.toISOString(),\n        timeZone: 'Europe/Berlin'\n    },\n    end: {\n        dateTime: endTime.toISOString(),\n        timeZone: 'Europe/Berlin'\n    },\n    colorId: prioColors[alert.priority] || '5',\n    reminders: {\n        useDefault: false,\n        overrides: [\n            { method: 'popup', minutes: 1440 },\n            { method: 'email', minutes: 2880 }\n        ]\n    }\n};\n\nnode.status({fill:'blue', shape:'dot', text: 'Event: ' + alert.title.substring(0, 20)});\nreturn msg;",
+        "outputs": 1,
+        "x": 850,
+        "y": 150,
+        "wires": [
+            [
+                "http_calendar_tire"
+            ]
+        ]
+    },
+    {
+        "id": "http_calendar_tire",
+        "type": "http request",
+        "z": "flow_tires",
+        "name": "Calendar API",
+        "method": "POST",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "http://calendar-webhook:5000/event",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": true,
+        "headers": [],
+        "x": 1070,
+        "y": 150,
+        "wires": [
+            [
+                "func_calendar_tire_response"
+            ]
+        ]
+    },
+    {
+        "id": "func_calendar_tire_response",
+        "type": "function",
+        "z": "flow_tires",
+        "name": "Response",
+        "func": "if (msg.statusCode === 200 || msg.statusCode === 201) {\n    node.status({fill:'green', shape:'dot', text: 'Termin erstellt'});\n    node.warn('Reifenwechsel-Termin erstellt');\n} else {\n    node.status({fill:'yellow', shape:'ring', text: 'Fehler: ' + msg.statusCode});\n    node.warn('Kalender-Fehler: ' + JSON.stringify(msg.payload));\n}\nreturn msg;",
+        "outputs": 1,
+        "x": 1240,
+        "y": 150,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "comment_tire_status",
+        "type": "comment",
+        "z": "flow_tires",
+        "name": "=== AKTUELLER STATUS ===",
+        "info": "Zeigt aktuellen Reifenstatus aller Fahrzeuge",
+        "x": 180,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "inject_tire_status",
+        "type": "inject",
+        "z": "flow_tires",
+        "name": "Status abrufen",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "status",
+        "payloadType": "str",
+        "x": 130,
+        "y": 340,
+        "wires": [
+            [
+                "http_tire_status"
+            ]
+        ]
+    },
+    {
+        "id": "http_tire_status",
+        "type": "http request",
+        "z": "flow_tires",
+        "name": "Tire Status API",
+        "method": "GET",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "http://tire-service:5003/tires/status",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": true,
+        "headers": [],
+        "x": 340,
+        "y": 340,
+        "wires": [
+            [
+                "func_display_tire_status",
+                "debug_tire_status"
+            ]
+        ]
+    },
+    {
+        "id": "debug_tire_status",
+        "type": "debug",
+        "z": "flow_tires",
+        "name": "Status Response",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "x": 550,
+        "y": 400,
+        "wires": []
+    },
+    {
+        "id": "func_display_tire_status",
+        "type": "function",
+        "z": "flow_tires",
+        "name": "Status anzeigen",
+        "func": "const result = msg.payload;\n\nif (!result || !result.vehicles) {\n    node.status({fill:'red', shape:'ring', text: 'Fehler'});\n    return null;\n}\n\nlet statusText = '';\nfor (const v of result.vehicles) {\n    const emoji = v.current_tires === 'winter' ? '❄️' : '☀️';\n    statusText += emoji + ' ' + v.display_name + ' ';\n}\n\nnode.status({fill:'blue', shape:'dot', text: statusText});\n\n// Fuer Dashboard\nmsg.payload = {\n    vehicles: result.vehicles,\n    recommendation: result.recommendation,\n    timestamp: new Date().toISOString()\n};\n\nreturn msg;",
+        "outputs": 1,
+        "x": 560,
+        "y": 340,
+        "wires": [
+            [
+                "mqtt_out_tire_status"
+            ]
+        ]
+    },
+    {
+        "id": "mqtt_out_tire_status",
+        "type": "mqtt out",
+        "z": "flow_tires",
+        "name": "MQTT Status",
+        "topic": "smartcar/tires/status",
+        "qos": "1",
+        "retain": "true",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "config_mqtt_internal",
+        "x": 770,
+        "y": 340,
+        "wires": []
     }
 ]

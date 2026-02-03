@@ -41,13 +41,19 @@
       "datasource": { "type": "influxdb", "uid": "influxdb" },
       "fieldConfig": {
         "defaults": {
-          "mappings": [
-            { "options": { "parked": { "color": "blue", "index": 0, "text": "Geparkt" } }, "type": "value" },
-            { "options": { "driving": { "color": "green", "index": 1, "text": "Fahrend" } }, "type": "value" },
-            { "options": { "idle": { "color": "yellow", "index": 2, "text": "Leerlauf" } }, "type": "value" },
-            { "options": { "offline": { "color": "red", "index": 3, "text": "Offline" } }, "type": "value" }
-          ],
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "#2196F3", "value": null },
+              { "color": "#03A9F4", "value": 0 },
+              { "color": "#FFC107", "value": 7 },
+              { "color": "#4CAF50", "value": 15 },
+              { "color": "#FF9800", "value": 30 }
+            ]
+          },
+          "unit": "celsius"
         },
         "overrides": []
       },
@@ -66,11 +72,93 @@
       "targets": [
         {
           "datasource": { "type": "influxdb", "uid": "influxdb" },
-          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -7d)\n  |> filter(fn: (r) => r._measurement == \"vehicle_state\")\n  |> filter(fn: (r) => r.vehicle_id == \"${vehicle_id}\")\n  |> filter(fn: (r) => r._field == \"state\")\n  |> group()\n  |> last()",
+          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r._measurement == \"tire_status\")\n  |> filter(fn: (r) => r._field == \"temperature\")\n  |> group()\n  |> last()",
           "refId": "A"
         }
       ],
-      "title": "Status ${vehicle_id}",
+      "title": "Temperatur",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "influxdb" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [
+            { "options": { "0": { "color": "#9C27B0", "index": 0, "text": "Ganzjahr" } }, "type": "value" },
+            { "options": { "1": { "color": "#FFC107", "index": 1, "text": "Sommer" } }, "type": "value" },
+            { "options": { "2": { "color": "#2196F3", "index": 2, "text": "Winter" } }, "type": "value" }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "#9C27B0", "value": null },
+            { "color": "#FFC107", "value": 1 },
+            { "color": "#2196F3", "value": 2 }
+          ]}
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "id": 50,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "influxdb" },
+          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r._measurement == \"tire_status\")\n  |> filter(fn: (r) => r.vehicle_id == \"${vehicle_id}\")\n  |> filter(fn: (r) => r._field == \"current_tires_value\")\n  |> last()",
+          "refId": "A"
+        }
+      ],
+      "title": "Reifen",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "influxdb" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [
+            { "options": { "0": { "color": "#4CAF50", "index": 0, "text": "OK" } }, "type": "value" },
+            { "options": { "1": { "color": "#9C27B0", "index": 1, "text": "Ganzjahr" } }, "type": "value" },
+            { "options": { "2": { "color": "#FF9800", "index": 2, "text": "Wechsel empfohlen" } }, "type": "value" },
+            { "options": { "3": { "color": "#F44336", "index": 3, "text": "WECHSEL NOETIG!" } }, "type": "value" }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "#4CAF50", "value": null },
+            { "color": "#9C27B0", "value": 1 },
+            { "color": "#FF9800", "value": 2 },
+            { "color": "#F44336", "value": 3 }
+          ]}
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "id": 51,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "influxdb" },
+          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r._measurement == \"tire_status\")\n  |> filter(fn: (r) => r.vehicle_id == \"${vehicle_id}\")\n  |> filter(fn: (r) => r._field == \"status_value\")\n  |> last()",
+          "refId": "A"
+        }
+      ],
+      "title": "Reifen-Status",
       "type": "stat"
     },
     {
@@ -90,7 +178,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 4 },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 5 },
       "id": 2,
       "options": {
         "minVizHeight": 75,
@@ -129,7 +217,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 4 },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 5 },
       "id": 3,
       "options": {
         "minVizHeight": 75,
@@ -161,7 +249,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 4 },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 5 },
       "id": 4,
       "options": {
         "colorMode": "value",
@@ -185,7 +273,7 @@
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 8 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
       "id": 101,
       "panels": [],
       "title": "Verlauf",
@@ -227,7 +315,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 9 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 },
       "id": 5,
       "options": {
         "legend": { "calcs": ["last", "min", "mean"], "displayMode": "table", "placement": "bottom", "showLegend": true },
@@ -279,7 +367,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 9 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 10 },
       "id": 6,
       "options": {
         "legend": { "calcs": ["last", "min", "mean"], "displayMode": "table", "placement": "bottom", "showLegend": true },
@@ -297,7 +385,7 @@
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 17 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 },
       "id": 102,
       "panels": [],
       "title": "Fehler & Fahrten",
@@ -336,7 +424,7 @@
           { "matcher": { "id": "byName", "options": "_time" }, "properties": [{ "id": "displayName", "value": "Zeit" }] }
         ]
       },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 18 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 19 },
       "id": 7,
       "options": { "cellHeight": "sm", "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false }, "showHeader": true, "sortBy": [{ "desc": true, "displayName": "Zeit" }] },
       "title": "Fehlerhistorie",
@@ -344,7 +432,7 @@
       "targets": [
         {
           "datasource": { "type": "influxdb", "uid": "influxdb" },
-          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"vehicle_errors\" or r._measurement == \"error\")\n  |> filter(fn: (r) => r.vehicle_id == \"${vehicle_id}\")\n  |> pivot(rowKey:[\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> sort(columns: [\"_time\"], desc: true)\n  |> limit(n: 50)",
+          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"vehicle_errors\")\n  |> filter(fn: (r) => r.vehicle_id == \"${vehicle_id}\")\n  |> pivot(rowKey:[\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> sort(columns: [\"_time\"], desc: true)\n  |> limit(n: 50)",
           "refId": "A"
         }
       ],
@@ -381,7 +469,7 @@
           { "matcher": { "id": "byName", "options": "_time" }, "properties": [{ "id": "displayName", "value": "Datum" }] }
         ]
       },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 18 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 19 },
       "id": 8,
       "options": { "cellHeight": "sm", "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false }, "showHeader": true, "sortBy": [{ "desc": true, "displayName": "Datum" }] },
       "title": "Fahrtenhistorie",

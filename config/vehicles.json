@@ -11,7 +11,25 @@
       "fuel_capacity_l": 62,
       "fuel_type": "Benzin",
       "color": "Silber",
-      "notes": "Dienstwagen 1"
+      "notes": "Dienstwagen 1",
+      "tires": {
+        "current": "winter",
+        "last_change": "2025-10-15",
+        "summer": {
+          "brand": "Continental",
+          "model": "PremiumContact 6",
+          "size": "195/65 R15",
+          "dot": "2023",
+          "tread_depth_mm": 5.5
+        },
+        "winter": {
+          "brand": "Michelin",
+          "model": "Alpin 6",
+          "size": "195/65 R15",
+          "dot": "2022",
+          "tread_depth_mm": 6.0
+        }
+      }
     },
     {
       "vehicle_id": "TEST001",
@@ -24,7 +42,25 @@
       "fuel_capacity_l": 50,
       "fuel_type": "Benzin",
       "color": "Tornadorot",
-      "notes": "Testfahrzeug fuer Demos"
+      "notes": "Testfahrzeug fuer Demos",
+      "tires": {
+        "current": "winter",
+        "last_change": "2026-02-03",
+        "summer": {
+          "brand": "Goodyear",
+          "model": "EfficientGrip",
+          "size": "205/55 R16",
+          "dot": "2024",
+          "tread_depth_mm": 7.0
+        },
+        "winter": {
+          "brand": "Dunlop",
+          "model": "Winter Sport 5",
+          "size": "205/55 R16",
+          "dot": "2023",
+          "tread_depth_mm": 7.5
+        }
+      }
     }
   ]
 }
