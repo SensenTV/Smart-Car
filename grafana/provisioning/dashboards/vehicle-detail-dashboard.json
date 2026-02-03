@@ -235,10 +235,14 @@
       "pluginVersion": "12.3.1",
       "targets": [
         {
+<<<<<<< HEAD
           "datasource": {
             "type": "influxdb",
             "uid": "influxdb"
           },
+=======
+          "datasource": { "type": "influxdb", "uid": "influxdb" },
+>>>>>>> c99073837eb6685d35e0b38f8f31499d24806320
           "query": "from(bucket: \"vehicle_data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"trip_summary\")\n  |> filter(fn: (r) => r.vehicle_id == \"${vehicle_id}\")\n  |> filter(fn: (r) => r._field == \"fuel_used\")\n  |> group(columns: [])\n  |> count()",
           "refId": "A"
         }
@@ -594,6 +598,7 @@
           }
         },
         "overrides": [
+<<<<<<< HEAD
           {
             "matcher": {
               "id": "byName",
@@ -695,6 +700,22 @@
               }
             ]
           }
+=======
+          { "matcher": { "id": "byName", "options": "error_code" }, "properties": [
+            { "id": "displayName", "value": "Fehler" },
+            { "id": "mappings", "value": [
+              { "type": "value", "options": { "CHECK_ENGINE": { "text": "Motorwarnleuchte", "color": "red" } } },
+              { "type": "value", "options": { "LOW_OIL": { "text": "Oelstand niedrig", "color": "orange" } } },
+              { "type": "value", "options": { "BATTERY_LOW": { "text": "Batterie schwach", "color": "yellow" } } },
+              { "type": "value", "options": { "TIRE_PRESSURE": { "text": "Reifendruck", "color": "orange" } } },
+              { "type": "value", "options": { "BRAKE_WEAR": { "text": "Bremsenverschleiss", "color": "red" } } },
+              { "type": "value", "options": { "COOLANT_LOW": { "text": "Kuehlmittel niedrig", "color": "orange" } } },
+              { "type": "value", "options": { "ABS_FAULT": { "text": "ABS Fehler", "color": "red" } } },
+              { "type": "value", "options": { "AIRBAG_FAULT": { "text": "Airbag Fehler", "color": "red" } } }
+            ]}
+          ]},
+          { "matcher": { "id": "byName", "options": "_time" }, "properties": [{ "id": "displayName", "value": "Zeit" }] }
+>>>>>>> c99073837eb6685d35e0b38f8f31499d24806320
         ]
       },
       "gridPos": {
@@ -717,11 +738,16 @@
       "pluginVersion": "12.3.1",
       "targets": [
         {
+<<<<<<< HEAD
           "datasource": {
             "type": "influxdb",
             "uid": "influxdb"
           },
           "query": "from(bucket: \"vehicle_data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"vehicle_errors\")\n  |> filter(fn: (r) => r.vehicle_id == \"${vehicle_id}\")\n  |> filter(fn: (r) => r._field == \"active\")\n  |> group(columns: [])\n  |> keep(columns: [\"_time\", \"error_code\"])\n  |> sort(columns: [\"_time\"], desc: true)\n  |> limit(n: 50)",
+=======
+          "datasource": { "type": "influxdb", "uid": "influxdb" },
+          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"vehicle_errors\")\n  |> filter(fn: (r) => r.vehicle_id == \"TEST001\")\n  |> filter(fn: (r) => r._field == \"active\")\n  |> group(columns: [])\n  |> keep(columns: [\"_time\", \"error_code\"])\n  |> sort(columns: [\"_time\"], desc: true)\n  |> limit(n: 50)",
+>>>>>>> c99073837eb6685d35e0b38f8f31499d24806320
           "refId": "A"
         }
       ],
@@ -847,10 +873,14 @@
       "pluginVersion": "12.3.1",
       "targets": [
         {
+<<<<<<< HEAD
           "datasource": {
             "type": "influxdb",
             "uid": "influxdb"
           },
+=======
+          "datasource": { "type": "influxdb", "uid": "influxdb" },
+>>>>>>> c99073837eb6685d35e0b38f8f31499d24806320
           "query": "from(bucket: \"vehicle_data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"trip_summary\" or r._measurement == \"trip\")\n  |> group()\n  |> filter(fn: (r) => r.vehicle_id == \"${vehicle_id}\")\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> sort(columns: [\"_time\"], desc: true)\n  |> limit(n: 50)",
           "refId": "A"
         }
@@ -865,8 +895,12 @@
               "_start": true,
               "_stop": true,
               "result": true,
+<<<<<<< HEAD
               "table": true,
               "vehicle_id": true
+=======
+              "table": true
+>>>>>>> c99073837eb6685d35e0b38f8f31499d24806320
             },
             "indexByName": {
               "_time": 0,
