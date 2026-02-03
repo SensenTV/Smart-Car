@@ -19,7 +19,20 @@
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": 1,
-  "links": [],
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": true,
+      "tags": [],
+      "targetBlank": false,
+      "title": "Zu den Fahrzeugen",
+      "tooltip": "",
+      "type": "link",
+      "url": "/d/smart-car-vehicle-detail"
+    }
+  ],
   "panels": [
     {
       "collapsed": false,

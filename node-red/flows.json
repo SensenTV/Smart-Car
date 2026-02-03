@@ -272,8 +272,8 @@
         "topic": "smartcar/TEST001",
         "payload": "state,TEST001,driving,42.5,12.8",
         "payloadType": "str",
-        "x": 130,
-        "y": 100,
+        "x": 110,
+        "y": 80,
         "wires": [
             [
                 "mqtt_out_test"
@@ -301,8 +301,37 @@
         "topic": "smartcar/TEST001",
         "payload": "error,TEST001,E001,1",
         "payloadType": "str",
-        "x": 130,
-        "y": 160,
+        "x": 110,
+        "y": 140,
+        "wires": [
+            [
+                "mqtt_out_test"
+            ]
+        ]
+    },
+    {
+        "id": "inject_error_resolved",
+        "type": "inject",
+        "z": "flow_test",
+        "name": "Fehler GELÖST",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "smartcar/TEST001",
+        "payload": "error,TEST001,E001,RESOLVED",
+        "payloadType": "str",
+        "x": 140,
+        "y": 180,
         "wires": [
             [
                 "mqtt_out_test"
@@ -330,8 +359,8 @@
         "topic": "smartcar/TEST001",
         "payload": "trip,TEST001,TRIP001,3600,5.2,3.5,4.1",
         "payloadType": "str",
-        "x": 130,
-        "y": 220,
+        "x": 110,
+        "y": 240,
         "wires": [
             [
                 "mqtt_out_test"
@@ -359,8 +388,37 @@
         "topic": "smartcar/TEST001",
         "payload": "alert,TEST001,low_fuel,Kraftstoff unter 10 Prozent",
         "payloadType": "str",
-        "x": 130,
-        "y": 280,
+        "x": 110,
+        "y": 300,
+        "wires": [
+            [
+                "mqtt_out_test"
+            ]
+        ]
+    },
+    {
+        "id": "inject_alert_resolved",
+        "type": "inject",
+        "z": "flow_test",
+        "name": "Alarm GELÖST",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "smartcar/TEST001",
+        "payload": "alert,TEST001,low_fuel,RESOLVED",
+        "payloadType": "str",
+        "x": 140,
+        "y": 340,
         "wires": [
             [
                 "mqtt_out_test"
@@ -388,8 +446,8 @@
         "topic": "smartcar/TEST001",
         "payload": "gps,TEST001,52.5200,13.4050,65",
         "payloadType": "str",
-        "x": 130,
-        "y": 340,
+        "x": 110,
+        "y": 380,
         "wires": [
             [
                 "mqtt_out_test"
@@ -762,7 +820,8 @@
         "y": 700,
         "wires": [
             [
-                "mqtt_out_test"
+                "mqtt_out_test",
+                "b3f7665d4df4f959"
             ]
         ]
     },
@@ -848,6 +907,11 @@
         "name": "Controller",
         "func": "// Simulation Controller\n// Start/Stop über Flow-Variable steuerbar\nconst cmd = msg.payload;\n\n// Start/Stop-Logik\nif (cmd === 'start_sim') {\n    flow.set('sim_active', true);\n    node.status({fill:'green', shape:'dot', text: 'Simulation: AN'});\n    return null;\n}\nif (cmd === 'stop_sim') {\n    flow.set('sim_active', false);\n    node.status({fill:'red', shape:'dot', text: 'Simulation: AUS'});\n    return null;\n}\n\n// Manueller Status setzen\nif (cmd === 'set_driving') {\n    flow.set('manual_state', 'driving');\n    node.status({fill:'green', shape:'dot', text: 'Status: driving'});\n    return msg;\n}\nif (cmd === 'set_parked') {\n    flow.set('manual_state', 'parked');\n    node.status({fill:'blue', shape:'dot', text: 'Status: parked'});\n    return msg;\n}\nif (cmd === 'set_error') {\n    flow.set('manual_state', 'error');\n    node.status({fill:'red', shape:'dot', text: 'Status: error'});\n    return msg;\n}\n\n// Manuelle Werte setzen\nif (cmd.startsWith('set_fuel:')) {\n    const value = parseFloat(cmd.split(':')[1]);\n    flow.set('manual_fuel', value);\n    node.status({fill:'orange', shape:'dot', text: 'Tank: ' + value + 'L'});\n    return msg;\n}\nif (cmd.startsWith('set_battery:')) {\n    const value = parseFloat(cmd.split(':')[1]);\n    flow.set('manual_battery', value);\n    node.status({fill:'yellow', shape:'dot', text: 'Batterie: ' + value + 'V'});\n    return msg;\n}\n\n// Tick - nur senden wenn aktiv\nif (cmd === 'tick') {\n    if (flow.get('sim_active')) {\n        const state = flow.get('manual_state') || 'parked';\n        node.status({fill:'green', shape:'dot', text: 'Aktiv: ' + state});\n        return msg;\n    } else {\n        node.status({fill:'grey', shape:'ring', text: 'Simulation AUS'});\n        return null;\n    }\n}\n\nreturn null;",
         "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
         "x": 420,
         "y": 500,
         "wires": [
@@ -863,6 +927,11 @@
         "name": "TEST001-Simulator",
         "func": "/**\n * Simuliert Fahrzeugdaten fuer TEST001\n * Status, Tank und Batterie koennen manuell gesetzt werden\n * Generiert automatisch Trips wenn Status von driving wechselt\n */\n\nconst VEHICLE = 'TEST001';\n\n// Fahrzeugkontext laden oder initialisieren\nlet v = context.get('vehicle') || {\n    fuel: 30 + Math.random() * 30,\n    battery: 12.2 + Math.random() * 1.5,\n    state: 'parked',\n    prevState: 'parked',\n    lat: 52.52 + (Math.random() - 0.5) * 0.1,\n    lon: 13.405 + (Math.random() - 0.5) * 0.1,\n    tripCounter: context.get('tripCounter') || 0,\n    tripStartTime: null,\n    tripStartFuel: null\n};\n\n// Manuelle Werte uebernehmen falls gesetzt\nconst manualState = flow.get('manual_state');\nconst manualFuel = flow.get('manual_fuel');\nconst manualBattery = flow.get('manual_battery');\n\nconst prevState = v.state;\n\nif (manualState) {\n    v.state = manualState;\n}\nif (manualFuel !== undefined && manualFuel !== null) {\n    v.fuel = manualFuel;\n    flow.set('manual_fuel', null);\n}\nif (manualBattery !== undefined && manualBattery !== null) {\n    v.battery = manualBattery;\n    flow.set('manual_battery', null);\n}\n\n// Trip-Logik: Start wenn driving beginnt, Ende wenn driving endet\nlet tripMsg = null;\n\nif (prevState !== 'driving' && v.state === 'driving') {\n    // Fahrt beginnt\n    v.tripStartTime = Date.now();\n    v.tripStartFuel = v.fuel;\n    node.warn('Fahrt gestartet');\n}\n\nif (prevState === 'driving' && v.state !== 'driving') {\n    // Fahrt endet - Trip generieren\n    v.tripCounter++;\n    const tripId = 'TRIP_' + VEHICLE + '_' + String(v.tripCounter).padStart(3, '0');\n    const duration = Math.floor((Date.now() - (v.tripStartTime || Date.now())) / 1000);\n    const fuelUsed = Math.max(0, (v.tripStartFuel || v.fuel) - v.fuel).toFixed(2);\n    const maxAcc = (2.5 + Math.random() * 2.5).toFixed(2);\n    const maxBrake = (3.0 + Math.random() * 3.0).toFixed(2);\n    \n    tripMsg = {\n        topic: 'smartcar/' + VEHICLE,\n        payload: `trip,${VEHICLE},${tripId},${duration},${fuelUsed},${maxAcc},${maxBrake}`\n    };\n    node.warn('Fahrt beendet: ' + tripId + ', Dauer: ' + duration + 's, Verbrauch: ' + fuelUsed + 'L');\n    \n    v.tripStartTime = null;\n    v.tripStartFuel = null;\n}\n\nv.prevState = v.state;\n\n// Werte basierend auf Zustand aendern\nswitch(v.state) {\n    case 'driving':\n        v.fuel = Math.max(5, v.fuel - 0.2 - Math.random() * 0.3);\n        v.battery = Math.max(11.5, v.battery - 0.01 + Math.random() * 0.02);\n        v.lat += (Math.random() - 0.5) * 0.002;\n        v.lon += (Math.random() - 0.5) * 0.002;\n        break;\n    case 'parked':\n    case 'idle':\n        v.battery = Math.min(14.0, v.battery + 0.01);\n        break;\n}\n\ncontext.set('vehicle', v);\ncontext.set('tripCounter', v.tripCounter);\n\n// State-Nachricht erstellen\nmsg.topic = 'smartcar/' + VEHICLE;\nmsg.payload = `state,${VEHICLE},${v.state},${v.fuel.toFixed(1)},${v.battery.toFixed(2)}`;\n\nnode.status({fill:'blue', shape:'dot', text: `${v.fuel.toFixed(0)}L | ${v.battery.toFixed(1)}V | ${v.state} | Trips: ${v.tripCounter}`});\n\n// GPS bei driving (30% Chance)\nlet gpsMsg = null;\nif (Math.random() < 0.3 && v.state === 'driving') {\n    const speed = 30 + Math.floor(Math.random() * 90);\n    gpsMsg = {\n        topic: 'smartcar/' + VEHICLE,\n        payload: `gps,${VEHICLE},${v.lat.toFixed(4)},${v.lon.toFixed(4)},${speed}`\n    };\n}\n\nreturn [[msg, gpsMsg, tripMsg].filter(m => m !== null)];",
         "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
         "x": 730,
         "y": 460,
         "wires": [
@@ -890,6 +959,23 @@
         "broker": "config_mqtt_internal",
         "x": 1200,
         "y": 340,
+        "wires": []
+    },
+    {
+        "id": "b3f7665d4df4f959",
+        "type": "debug",
+        "z": "flow_test",
+        "name": "Fehler generator",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 990,
+        "y": 720,
         "wires": []
     },
     {

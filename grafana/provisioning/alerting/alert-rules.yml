@@ -1,7 +1,7 @@
 groups:
   - name: SmartCar Alerts
     folder: Notifications
-    interval: 1m
+    interval: 10s
     rules:
       - uid: vehicle_error_alert
         title: Vehicle Error Detection

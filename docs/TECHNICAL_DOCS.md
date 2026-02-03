@@ -49,23 +49,23 @@ Das Smart-Car System folgt einer **ereignisgesteuerten Microservice-Architektur*
 
 ```
 +-------------------------------------------------------------------------+
-|                         Docker Network                                   |
-|                       (smartcar-network)                                 |
-|                                                                          |
+|                         Docker Network                                  |
+|                       (smartcar-network)                                |
+|                                                                         |
 |  +-----------+   +-----------+   +-----------+   +----------------+     |
 |  | mosquitto |   |  node-red |   | influxdb  |   | calendar-      |     |
 |  |  :1883    |<--|   :1880   |-->|  :8086    |   | webhook :5000  |     |
-|  |  :8883    |   +-----+-----+   +-----+-----+   +--------^-------+     |
-|  +-----+-----+         |               |                  |              |
-|        |               |               |                  |              |
-|        |               v               v                  |              |
-|        |         +-----+-----+   +-----v-----+            |              |
-|        |         | vehicle-  |   |  grafana  |            |              |
-|        |         | sync      |   |  :3001    |            |              |
-|        |         +-----------+   +-----------+            |              |
+|  +-----------+   +-----+-----+   +-----+-----+   +--------^-------|     |
+|        |               |               |                  |             |
+|        |               |               |                  |             |
+|        |               v               v                  |             |
+|        |         +-----+-----+   +-----v-----+            |             |
+|        |         | vehicle-  |   |  grafana  |            |             |
+|        |         | sync      |   |  :3001    |            |             |
+|        |         +-----------+   +-----------+            |             |
 +--------+-------------------------------------------------+--------------+
          |                                                  |
-         | Port 8883 (TLS)                           HTTP Webhook
+         | Port 1883 (TLS)                           HTTP Webhook
          v                                                  |
   +-----------+                                             v
   |   ESP32   |                                   Google Calendar API
@@ -87,14 +87,6 @@ Das Smart-Car System folgt einer **ereignisgesteuerten Microservice-Architektur*
 listener 1883
 protocol mqtt
 
-# TLS-verschluesselter Port (extern)
-listener 8883
-protocol mqtt
-cafile /mosquitto/config/certs/ca.crt
-certfile /mosquitto/config/certs/mosquitto.crt
-keyfile /mosquitto/config/certs/mosquitto.key
-tls_version tlsv1.2
-
 # Anonyme Verbindungen erlaubt
 allow_anonymous true
 ```
@@ -102,8 +94,8 @@ allow_anonymous true
 **Ports**:
 | Port | Protokoll | Verwendung |
 |------|-----------|------------|
-| 1883 | MQTT | Interne Kommunikation (Node-RED) |
-| 8883 | MQTTS | Externe Geraete (ESP32 mit TLS) |
+| 1883 | MQTT | Kommunikation (Node-RED / ESP32) |
+
 
 ### 2.2 Node-RED
 
@@ -146,7 +138,7 @@ grafana/provisioning/
 |-- dashboards/
 |   |-- dashboards.yml         # Dashboard-Provider
 |   |-- main-dashboard.json    # Hauptuebersicht
-|   +-- vehicle-detail-dashboard.json
+|   +-- vehicle-detail-dashboard.json # Einzelne Fahrzeugdaten
 |-- datasources/
 |   +-- datasources.yml        # Datenquellen
 +-- alerting/
@@ -276,7 +268,7 @@ state,{vehicle_id},{state_name},{fuel_l},{battery_v}
 | Feld | Typ | Beschreibung | Beispiel |
 |------|-----|--------------|----------|
 | vehicle_id | String | Fahrzeug-Kennung | CAR001 |
-| state_name | String | Fahrzeugzustand | idle, driving, charging, parked |
+| state_name | String | Fahrzeugzustand | driving, parked |
 | fuel_l | Float | Kraftstoff in Litern | 45.5 |
 | battery_v | Float | Batteriespannung | 12.8 |
 
@@ -451,59 +443,23 @@ from(bucket: "vehicle_data")
 
 ### 6.2 CSV Parser Logik
 
-```javascript
-// CSV -> InfluxDB Line Protocol Transformation
-let topicParts = msg.topic.split('/');
-let vehicle_id = topicParts[1] || 'UNKNOWN';
-let cols = msg.payload.toString().trim().split(',');
-let type = cols[0].toLowerCase();
-let line = '';
-let ts = Date.now() * 1000000; // nanoseconds
+- Die Topic-Adresse der eingehenden Nachricht wird anhand von „/“ aufgeteilt.
+--> ```let topicParts = msg.topic.split('/');```
 
-switch(type) {
-    case 'state':
-        let state = cols[2] || 'unknown';
-        let fuel = parseFloat(cols[3]) || 0;
-        let battery = parseFloat(cols[4]) || 0;
-        line = `vehicle_state,vehicle_id=${vehicle_id},state=${state} fuel_l=${fuel},battery_v=${battery},online=1i ${ts}`;
-        break;
-        
-    case 'error':
-        let error_code = cols[2];
-        let active = parseInt(cols[3]) === 1 ? 1 : 0;
-        line = `vehicle_errors,vehicle_id=${vehicle_id},error_code=${error_code} active=${active}i ${ts}`;
-        break;
-        
-    case 'trip':
-        let trip_id = cols[2];
-        let duration = parseInt(cols[3]) || 0;
-        let fuel_used = parseFloat(cols[4]) || 0;
-        let max_acc = parseFloat(cols[5]) || 0;
-        let max_brake = parseFloat(cols[6]) || 0;
-        line = `trip_summary,vehicle_id=${vehicle_id},trip_id=${trip_id} duration_s=${duration}i,fuel_used=${fuel_used},max_acceleration=${max_acc},max_braking=${max_brake} ${ts}`;
-        break;
-        
-    case 'gps':
-        let lat = parseFloat(cols[2]) || 0;
-        let lon = parseFloat(cols[3]) || 0;
-        let speed = parseFloat(cols[4]) || 0;
-        line = `vehicle_gps,vehicle_id=${vehicle_id} latitude=${lat},longitude=${lon},speed_kmh=${speed} ${ts}`;
-        break;
+- Aus dem zweiten Teil des Topics wird die Fahrzeug-ID gelesen. Falls keine vorhanden ist, wird „UNKNOWN“ verwendet.
+--> ```let vehicle_id = topicParts[1] || 'UNKNOWN';```
 
-    case 'alert':
-        let alert_type = cols[2];
-        let alert_msg = cols[3] || '';
-        line = `alerts,vehicle_id=${vehicle_id},alert_type=${alert_type} message="${alert_msg}" ${ts}`;
-        break;
-}
+- Der Nachrichteninhalt wird in einen Text umgewandelt, von Leerzeichen bereinigt und an den Kommas getrennt.
+- Dadurch entsteht eine Liste von Werten (Spalten).
+--> ```let cols = msg.payload.toString().trim().split(',');```
 
-msg.payload = line;
-msg.headers = {
-    'Authorization': 'Token vehicle-admin-token',
-    'Content-Type': 'text/plain'
-};
-return msg;
-```
+- Der erste Wert bestimmt den Datentyp (z. B. state, error, trip, gps, alert).
+
+- Dieser Typ wird in Kleinbuchstaben umgewandelt, um Vergleichsfehler zu vermeiden.
+--> ```let type = cols[0].toLowerCase();```
+
+- Es wird ein Zeitstempel in Nanosekunden erzeugt, basierend auf der aktuellen Zeit.
+--> ```let ts = Date.now() * 1000000;```
 
 ### 6.3 HTTP Request Konfiguration
 
@@ -575,29 +531,30 @@ return msg;
 2. **Aktive Fehler** (Stat)
    - Anzahl nicht geloester Fehler
 
-3. **Fahrten 24h** (Stat)
+3. **Fahrten 7 Tage** (Stat)
    - Anzahl Fahrten in den letzten 24 Stunden
 
-4. **Alarme 24h** (Stat)
+4. **Fehler 7 Tage** (Stat)
    - Anzahl Alarme in den letzten 24 Stunden
 
-5. **Kraftstoffstand** (Time Series)
-   - Verlauf des Kraftstoffstands pro Fahrzeug
+5. **Flottenstatus** (Stat)
+   - Gesamtstatus der Flotte basierend auf kritischen Werten
 
-6. **Batteriespannung** (Time Series)
-   - Verlauf der Batteriespannung pro Fahrzeug
+6. **Kraftstoff niedrig** (Stat)
+   - Anzahl Fahrzeuge mit niedrigem Kraftstoff
 
-7. **Fahrzeugliste** (Table)
-   - Liste aller Fahrzeuge mit aktuellem Status
+7. **Batterie niedrig** (Stat)
+   - Anzahl Fahrzeuge mit niedriger Batterie
 
-8. **Fehlerliste** (Table)
-   - Liste aller Fehler
+8. **Heutige Termine** (Table)
+    - Tabelle mit den anliegenden Aufgaben des aktuellen Tages
 
 9. **Letzte Fahrten** (Table)
    - Liste der letzten Fahrten
 
-10. **Letzte Alarme** (Table)
-    - Liste der letzten Alarme
+10. **Geschwindigkeitsverlauf** (Time Series)
+   - Ablaufdiagramm der Geschwindigkeiten eines Trips
+
 
 ### 7.2 Detail-Dashboard (Fahrzeug Details)
 
@@ -607,28 +564,39 @@ return msg;
 - `$vehicle_id` - Ausgewaehltes Fahrzeug (Dropdown)
 
 **Panels:**
-1. Status (Stat)
-2. Kraftstoff (Gauge)
-3. Batterie (Gauge)
-4. Fahrten 7 Tage (Stat)
-5. Kraftstoffverlauf (Time Series)
-6. Batterieverlauf (Time Series)
-7. Letzte Fahrten (Table)
-8. Fahrzeugfehler (Table)
-9. Alarme (Table)
+1. Fahrzeug-ID(Dropdown Menue)
+2. Status (Stat)
+3. Kraftstoff (Gauge)
+4. Batterie (Gauge)
+5. Fahrten 7 Tage (Stat)
+6. Kraftstoffverlauf (Time Series)
+7. Batterieverlauf (Time Series)
+8. Letzte Fahrten (Table)
+9. Fahrzeugfehler (Table)
 
 ### 7.3 Dashboard-Provisioning
 
-```yaml
-# dashboards.yml
-apiVersion: 1
-providers:
-  - name: 'default'
-    folder: 'Smart-Car'
-    type: file
-    options:
-      path: /etc/grafana/provisioning/dashboards
-```
+## dashboards.yml
+
+- Die Datei dient zur automatischen Bereitstellung von Dashboards in  Grafana.
+
+- Mit apiVersion: 1 wird festgelegt, welche Version der Provisioning-Schnittstelle verwendet wird.
+
+- Unter „providers“ wird definiert, woher Grafana die Dashboards laden soll.
+
+- Es wird ein Anbieter mit dem Namen „default“ angelegt.
+
+- Die Dashboards werden in einem Ordner mit dem Namen „Smart-Car“ gespeichert und angezeigt.
+
+- Der Typ „file“ bedeutet, dass die Dashboards aus Dateien im Dateisystem geladen werden.
+
+- Unter „options“ wird der Speicherort der Dashboard-Dateien angegeben.
+
+- Der Pfad /etc/grafana/provisioning/dashboards gibt an, in welchem Verzeichnis die JSON-Dashboard-Dateien liegen.
+
+- Beim Start von Grafana werden alle Dashboards aus diesem Ordner automatisch eingelesen.
+
+- Dadurch müssen Dashboards nicht manuell im Webinterface importiert werden, sondern stehen direkt zur Verfügung.
 
 ---
 
@@ -658,93 +626,6 @@ providers:
 | RST | GPIO 14 |
 | DIO0 | GPIO 26 |
 
-### 8.2 Bibliotheken
-
-```cpp
-// platformio.ini
-[env:esp32]
-platform = espressif32
-board = esp32dev
-framework = arduino
-lib_deps =
-    knolleary/PubSubClient@^2.8
-    sandeepmistry/LoRa@^0.8.0
-    bblanchon/ArduinoJson@^6.21
-```
-
-### 8.3 Stromverbrauch-Optimierung
-
-| Modus | Stromverbrauch | Anwendung |
-|-------|----------------|-----------|
-| Active | ~240 mA | Datenuebertragung |
-| Modem Sleep | ~20 mA | WiFi connected, idle |
-| Light Sleep | ~0.8 mA | Periodische Messung |
-| Deep Sleep | ~10 uA | Langzeit-Standby |
-
-**Deep Sleep Beispiel:**
-```cpp
-#define uS_TO_S_FACTOR 1000000
-#define TIME_TO_SLEEP  60  // 60 Sekunden
-
-void setup() {
-    // Messung und Uebertragung
-    sendData();
-    
-    // Deep Sleep
-    esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
-    esp_deep_sleep_start();
-}
-```
-
----
-
-## 9. Sicherheit
-
-### 9.1 TLS-Zertifikate
-
-**Zertifikatsstruktur:**
-```
-mosquitto/config/certs/
-|-- ca.crt          # Certificate Authority
-|-- mosquitto.crt   # Server-Zertifikat
-+-- mosquitto.key   # Privater Schluessel
-```
-
-**Generierung:**
-```bash
-# Private Key
-openssl genrsa -out mosquitto.key 2048
-
-# Zertifikat (10 Jahre gueltig)
-openssl req -new -x509 -key mosquitto.key -out mosquitto.crt -days 3650 \
-  -subj "/C=DE/ST=Berlin/L=Berlin/O=SmartCar/CN=mosquitto"
-
-# CA = Self-signed
-cp mosquitto.crt ca.crt
-```
-
-### 9.2 Empfohlene Sicherheitsmassnahmen
-
-| Massnahme | Status | Prioritaet |
-|----------|--------|-----------|
-| TLS fuer MQTT | Implementiert | Hoch |
-| MQTT-Authentifizierung | Optional | Mittel |
-| Grafana-Passwort | Konfiguriert | Hoch |
-| InfluxDB-Token | Konfiguriert | Hoch |
-| Netzwerk-Isolation | Docker Network | Mittel |
-
-### 9.3 MQTT-Authentifizierung (Optional)
-
-```properties
-# mosquitto.conf
-allow_anonymous false
-password_file /mosquitto/config/passwd
-```
-
-```bash
-# Passwort-Datei erstellen
-docker exec -it mosquitto mosquitto_passwd -c /mosquitto/config/passwd esp32user
-```
 
 ---
 
@@ -1019,14 +900,13 @@ cp node-red/flows_cred.json node-red/flows_cred_backup_$(date +%Y%m%d).json
 
 | Service | Port (Host) | Port (Container) | Zugriff |
 |---------|-------------|------------------|---------|
-| Mosquitto (MQTT) | 1883 | 1883 | Intern |
-| Mosquitto (MQTTS) | 8883 | 1883 | Extern (TLS) |
+| Mosquitto (MQTT) | 1883 | 1883 | Intern/Extern |
 | Node-RED | 1880 | 1880 | Web-UI |
 | InfluxDB | 8086 | 8086 | API |
 | Grafana | 3001 | 3000 | Web-UI |
 | Calendar Webhook | 5000 | 5000 | API (intern) |
 
-### D. Google Calendar Integration
+### D. Externe Dokumentationen
 
 - [InfluxDB 2.x Dokumentation](https://docs.influxdata.com/influxdb/v2/)
 - [Grafana Dokumentation](https://grafana.com/docs/grafana/latest/)
@@ -1035,15 +915,3 @@ cp node-red/flows_cred.json node-red/flows_cred_backup_$(date +%Y%m%d).json
 - [ESP32 Arduino Core](https://docs.espressif.com/projects/arduino-esp32/)
 - [LoRa Library](https://github.com/sandeepmistry/arduino-LoRa)
 
----
-
-*Dokumentation erstellt: Januar 2026*
-*Letzte Aktualisierung: Februar 2026*
-*Version: 2.0*
-
-**Änderungen in v2.0:**
-- Google Calendar Integration
-- Vehicle Sync Service
-- Alert-System mit Kalender-Integration
-- Erweiterte API-Dokumentation
-- Backup und Wiederherstellung
