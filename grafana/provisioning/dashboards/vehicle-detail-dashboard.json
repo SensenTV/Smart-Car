@@ -140,7 +140,7 @@
       "targets": [
         {
           "datasource": { "type": "influxdb", "uid": "influxdb" },
-          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -7d)\n  |> filter(fn: (r) => r._measurement == \"trip_summary\")\n  |> filter(fn: (r) => r.vehicle_id == \"${vehicle_id}\")\n  |> filter(fn: (r) => r._field == \"fuel_used\")\n  |> group()\n  |> count()\n  |> map(fn: (r) => ({_value: r._value}))",
+          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"trip_summary\")\n  |> filter(fn: (r) => r.vehicle_id == \"${vehicle_id}\")\n  |> filter(fn: (r) => r._field == \"fuel_used\")\n  |> group(columns: [])\n  |> count()",
           "refId": "A"
         }
       ],
@@ -330,13 +330,6 @@
               { "type": "value", "options": { "AIRBAG_FAULT": { "text": "Airbag Fehler", "color": "red" } } }
             ]}
           ]},
-          { "matcher": { "id": "byName", "options": "active" }, "properties": [
-            { "id": "displayName", "value": "Status" },
-            { "id": "mappings", "value": [
-              { "type": "value", "options": { "1": { "text": "AKTIV", "color": "red" } } },
-              { "type": "value", "options": { "0": { "text": "Gelöst", "color": "green" } } }
-            ]}
-          ]},
           { "matcher": { "id": "byName", "options": "_time" }, "properties": [{ "id": "displayName", "value": "Zeit" }] }
         ]
       },
@@ -348,7 +341,7 @@
       "targets": [
         {
           "datasource": { "type": "influxdb", "uid": "influxdb" },
-          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"vehicle_errors\")\n  |> filter(fn: (r) => r.vehicle_id == \"${vehicle_id}\")\n  |> pivot(rowKey:[\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> group()\n  |> keep(columns: [\"_time\", \"error_code\", \"active\"])\n  |> sort(columns: [\"_time\"], desc: true)\n  |> limit(n: 50)",
+          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"vehicle_errors\")\n  |> filter(fn: (r) => r.vehicle_id == \"TEST001\")\n  |> filter(fn: (r) => r._field == \"active\")\n  |> group(columns: [])\n  |> keep(columns: [\"_time\", \"error_code\"])\n  |> sort(columns: [\"_time\"], desc: true)\n  |> limit(n: 50)",
           "refId": "A"
         }
       ],
@@ -359,13 +352,11 @@
             "excludeByName": {},
             "indexByName": {
               "_time": 0,
-              "error_code": 1,
-              "active": 2
+              "error_code": 1
             },
             "renameByName": {
               "_time": "Datum",
-              "error_code": "Fehler",
-              "active": "Status"
+              "error_code": "Fehler"
             }
           }
         }
@@ -395,7 +386,7 @@
       "targets": [
         {
           "datasource": { "type": "influxdb", "uid": "influxdb" },
-          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"trip_summary\" or r._measurement == \"trip\")\n  |> filter(fn: (r) => r.vehicle_id == \"${vehicle_id}\")\n  |> pivot(rowKey:[\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> group()\n  |> sort(columns: [\"_time\"], desc: true)\n  |> limit(n: 50)",
+          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"trip_summary\" or r._measurement == \"trip\")\n  |> group()\n  |> filter(fn: (r) => r.vehicle_id == \"${vehicle_id}\")\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> sort(columns: [\"_time\"], desc: true)\n  |> limit(n: 50)",
           "refId": "A"
         }
       ],
@@ -409,9 +400,7 @@
               "_measurement": true,
               "vehicle_id": true,
               "result": true,
-              "table": true,
-              "max_acceleration": true,
-              "max_braking": true
+              "table": true
             },
             "indexByName": {
               "_time": 0,

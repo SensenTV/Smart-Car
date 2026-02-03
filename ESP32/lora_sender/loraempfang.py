@@ -24,7 +24,6 @@ VEHICLE_NAMES = {
 }
 
 ERROR_CODES = {
-    0: "OK",
     1: "BATTERY_LOW",
     2: "CHECK_ENGINE",
     3: "LOW_OIL",
@@ -64,15 +63,6 @@ def write_to_influx(db_client, v_id, msg_type, values):
             .field("battery_v", float(battery)) \
             .field("state", "driving")
         points.append(p)
-        
-        # Kein Fehler = OK Status
-        p_ok = Point("vehicle_errors") \
-            .tag("vehicle_id", v_name) \
-            .tag("error_code", "OK") \
-            .field("active", 0)
-        points.append(p_ok)
-        
-        print(f"[OK] {v_name} DRIVING | Tank: {fuel}L | Batt: {battery}V")
 
     # --- TYP 2: TRIP SUMMARY (Fahrt Ende) ---
     elif msg_type == MSG_TRIP_END:
