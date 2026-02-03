@@ -102,6 +102,7 @@
 | **Fahrzeug-Synchronisation** | Automatische Daten-Abgleichung mit InfluxDB |
 | **Alert-Management** | Intelligente Alert-Verarbeitung und Eskalation |
 | **Dashboards** | Vorkonfigurierte Grafana-Visualisierungen |
+| **LoRa TTN Bridge** | Integration mit The Things Network fuer LoRaWAN |
 | **Docker-basiert** | Einfache Installation und Portabilitaet |
 
 ---
@@ -259,6 +260,31 @@ void loop() {
 }
 ```
 
+### LoRa via TTN (The Things Network)
+
+Fuer LoRaWAN ueber TTN wird die `loraempfang.py` Bridge verwendet:
+
+```bash
+# TTN Bridge starten (empfaengt Daten von TTN und schreibt nach InfluxDB)
+python esp32/lora_sender/loraempfang.py
+```
+
+**Unterstuetzte Nachrichtentypen (4-Byte Payload):**
+| Typ | ID | Format | Beschreibung |
+|-----|-----|--------|--------------|
+| STATUS | 1 | [VehicleID, Type, Fuel, Battery*10] | Fahrstatus |
+| TRIP_END | 2 | [VehicleID, Type, Duration_min, FuelUsed*10] | Fahrt beendet |
+| ERROR | 3 | [VehicleID, Type, ErrorCode, Battery*10] | Fehlermeldung |
+| IDLE | 4 | [VehicleID, Type, Fuel, Battery*10] | Fahrzeug steht |
+
+**Error Codes:**
+| Code | Bedeutung |
+|------|-----------|
+| 1 | BATTERY_LOW |
+| 2 | CHECK_ENGINE |
+| 3 | LOW_OIL |
+| 4 | TIRE_PRESSURE |
+
 ---
 
 ## Datenformat
@@ -278,15 +304,17 @@ Beispiel: `state,CAR001,driving,45.5,12.8`
 
 ### Fahrt-Zusammenfassung
 ```
-trip,{vehicle_id},{trip_id},{duration_s},{fuel_used},{max_acc},{max_brake}
+trip,{vehicle_id},{trip_id},{duration_s},{fuel_used}
 ```
-Beispiel: `trip,CAR001,TRIP001,3600,5.5,3.2,4.8`
+Beispiel: `trip,CAR001,TRIP001,3600,5.5`
 
 ### Fehler
 ```
 error,{vehicle_id},{error_code},{active}
 ```
-Beispiel: `error,CAR001,P0420,1`
+Gueltige Error Codes: `BATTERY_LOW`, `CHECK_ENGINE`, `LOW_OIL`, `TIRE_PRESSURE`, `BRAKE_WEAR`, `COOLANT_LOW`, `ABS_FAULT`, `AIRBAG_FAULT`
+
+Beispiel: `error,CAR001,TIRE_PRESSURE,1`
 
 ### GPS-Position
 ```
@@ -414,8 +442,10 @@ Smart-Car/
 |   +-- settings.js            # Node-RED Einstellungen
 |
 |-- esp32/                     # ESP32 Beispielcode
-|   |-- wlan_mqtt_example/
-|   +-- lora_example/
+|   |-- wlan_mqtt_example/     # WLAN/MQTT Beispiel
+|   |-- lora_gateway/          # LoRa Gateway (Empfaenger)
+|   +-- lora_sender/           # LoRa Sender + TTN Bridge
+|       +-- loraempfang.py     # TTN zu InfluxDB Bridge
 |
 +-- docs/                      # Dokumentation
     +-- TECHNICAL_DOCS.md
