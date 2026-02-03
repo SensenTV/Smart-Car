@@ -1179,6 +1179,13 @@
       "id": 9,
       "options": {
         "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": false,
+          "fields": [],
+          "reducer": [],
+          "show": false
+        },
         "showHeader": true,
         "sortBy": [
           {

@@ -5,31 +5,30 @@ Write-Host "Smart-Car Docker Starter" -ForegroundColor Cyan
 Write-Host "=================================================" -ForegroundColor Cyan
 Write-Host ""
 
-# Prüfe ob Docker läuft
 Write-Host "[1/4] Überprüfe Docker..." -ForegroundColor Yellow
-if ((docker ps 2>&1 | Select-String "error") -or $LASTEXITCODE -ne 0) {
-    Write-Host "Docker läuft nicht!" -ForegroundColor Red
+$null = docker info 2>$null
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Docker läuft nicht oder ist nicht erreichbar!" -ForegroundColor Red
     exit 1
 }
 Write-Host "Docker läuft" -ForegroundColor Green
 
-# Stoppe alte Container
+# Stoppe alte Container + entferne verwaiste Container
 Write-Host "[2/4] Stoppe alte Container..." -ForegroundColor Yellow
-docker-compose down 2>&1 | Out-Null
+docker-compose down --remove-orphans 2>&1 | Out-Null
 Write-Host "Alte Container gestoppt" -ForegroundColor Green
 
 # Starte neue Container mit minimaler Ausgabe
 Write-Host "[3/4] Starte neue Container..." -ForegroundColor Yellow
-docker-compose up -d 2>&1 | Select-String "Container|Network" | ForEach-Object { Write-Host "  $_" }
+$env:COMPOSE_PROGRESS = "plain"
+docker-compose up -d 2>&1 | Select-String "Container|Network|Started|Created|Healthy" | ForEach-Object { Write-Host "  $_" }
 
 # Warte auf Gesundheit der Services
 Write-Host "[4/4] Warte auf Services..." -ForegroundColor Yellow
-$maxWait = 60
-$elapsed = 0
-
+$maxWait = 120
 for ($i = 0; $i -lt $maxWait; $i += 2) {
-    $running = (docker-compose ps --services --filter "status=running" 2>&1).Count
-    if ($running -ge 5) {
+    $healthy = (docker-compose ps --format "{{.Name}} {{.State}}" 2>$null | Select-String "running|healthy").Count
+    if ($healthy -ge 5) {
         break
     }
     Write-Host "Warte auf Services..." -NoNewline

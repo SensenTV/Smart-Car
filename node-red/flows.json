@@ -468,7 +468,7 @@
         "name": "=== STATUS STEUERUNG ===",
         "info": "Klicke auf DRIVING, PARKED oder ERROR um den Status zu setzen.\nDaten werden automatisch alle 5 Sekunden gesendet.",
         "x": 170,
-        "y": 420,
+        "y": 380,
         "wires": []
     },
     {
@@ -515,6 +515,31 @@
         "payloadType": "str",
         "x": 120,
         "y": 500,
+        "wires": [
+            [
+                "func_controller"
+            ]
+        ]
+    },
+    {
+        "id": "inject_parked_test001",
+        "type": "inject",
+        "z": "flow_test",
+        "name": "PARKED TEST001",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "set_parked",
+        "payloadType": "str",
+        "x": 150,
+        "y": 420,
         "wires": [
             [
                 "func_controller"
@@ -869,8 +894,8 @@
         ],
         "repeat": "",
         "crontab": "",
-        "once": true,
-        "onceDelay": "1",
+        "once": false,
+        "onceDelay": 0.1,
         "topic": "",
         "payload": "start_sim",
         "payloadType": "str",

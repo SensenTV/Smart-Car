@@ -18,6 +18,8 @@ SAVE_TO_CSV = os.environ.get('SAVE_TO_CSV', 'true').lower() == 'true'
 MQTT_BROKER = os.environ.get('MQTT_BROKER', 'mosquitto')
 MQTT_PORT = int(os.environ.get('MQTT_PORT', 1883))
 MQTT_TOPIC_PREFIX = "smartcar/"
+ALLOWED_TEST_VEHICLE = "TEST001"
+ALLOWED_VW_VEHICLE = "VW-Passat-B5-001"
 
 # MQTT Client Setup  
 import warnings
@@ -57,6 +59,14 @@ def send_to_mqtt(line):
         parts = line.split(',')
         if len(parts) >= 2:
             vehicle_id = parts[1]
+            if vehicle_id not in (ALLOWED_TEST_VEHICLE, ALLOWED_VW_VEHICLE):
+                upper_id = vehicle_id.upper()
+                if "VW" in upper_id or "PASSAT" in upper_id:
+                    vehicle_id = ALLOWED_VW_VEHICLE
+                else:
+                    vehicle_id = ALLOWED_TEST_VEHICLE
+                parts[1] = vehicle_id
+                line = ",".join(parts)
             topic = f"{MQTT_TOPIC_PREFIX}{vehicle_id}"
             
             result = mqtt_client.publish(topic, line, qos=1)
