@@ -72,6 +72,8 @@ class VehicleSimulator:
         
     def get_state_msg(self) -> str:
         return f"state,{self.vehicle_id},{self.state},{self.fuel:.1f},{self.battery:.2f}"
+
+    # Vereinheitlichung: battery_v als Feldname in CSV-Kommentaren und Dokumentation verwenden
     
     def get_gps_msg(self) -> str:
         return f"gps,{self.vehicle_id},{self.lat:.6f},{self.lon:.6f},{self.speed}"
@@ -150,7 +152,7 @@ def main():
     
     try:
         if args.continuous:
-            print("Druecke Ctrl+C zum Beenden...\n")
+            print("Ctrl+C zum Beenden...\n")
             while True:
                 sim.update()
                 iteration += 1
@@ -205,7 +207,7 @@ def main():
                 time.sleep(0.3)
                 send("alert", sim.get_alert_msg("test", "Test_Alarm"))
             
-            print("\nFertig! Pruefe Grafana: http://localhost:3001")
+            print("\nFertig! Pruefen auf Grafana: http://localhost:3001")
     
     except KeyboardInterrupt:
         print("\n\nBeendet.")

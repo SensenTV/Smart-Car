@@ -89,7 +89,7 @@
             "type": "influxdb",
             "uid": "influxdb"
           },
-          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -5s)\n  |> filter(fn: (r) => r._measurement == \"vehicle_state\")\n  |> filter(fn: (r) => r._field == \"fuel_l\")\n  |> filter(fn: (r) => r.state == \"driving\")\n  |> group(columns: [\"vehicle_id\"])\n  |> last()\n  |> group()\n  |> count()\n  |> keep(columns: [\"_value\"])",
+          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -30s)\n  |> filter(fn: (r) => r._measurement == \"vehicle_state\" or r._measurement == \"state\")\n  |> filter(fn: (r) => r._field == \"fuel_l\")\n  |> filter(fn: (r) => r.state == \"driving\")\n  |> group(columns: [\"vehicle_id\"])\n  |> last()\n  |> group()\n  |> count()\n  |> keep(columns: [\"_value\"])",
           "refId": "A"
         }
       ],
@@ -155,7 +155,7 @@
             "type": "influxdb",
             "uid": "influxdb"
           },
-          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -7d)\n  |> filter(fn: (r) => r._measurement == \"vehicle_errors\")\n  |> filter(fn: (r) => r._field == \"active\")\n  |> group(columns: [\"vehicle_id\", \"error_code\"])\n  |> last()\n  |> filter(fn: (r) => r._value == 1)\n  |> group()\n  |> count()\n  |> map(fn: (r) => ({_value: r._value}))",
+          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -7d)\n  |> filter(fn: (r) => r._measurement == \"vehicle_errors\" or r._measurement == \"error\")\n  |> filter(fn: (r) => r._field == \"active\")\n  |> group(columns: [\"vehicle_id\", \"error_code\"])\n  |> last()\n  |> filter(fn: (r) => r._value == 1)\n  |> group()\n  |> count()\n  |> map(fn: (r) => ({_value: r._value}))",
           "refId": "A"
         }
       ],
@@ -217,11 +217,11 @@
             "type": "influxdb",
             "uid": "influxdb"
           },
-          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r._measurement == \"vehicle_state\")\n  |> filter(fn: (r) => r._field == \"fuel_l\")\n  |> group(columns: [\"vehicle_id\"])\n  |> sort(columns: [\"_time\"])\n  |> map(fn: (r) => ({_time: r._time, _value: if r.state == \"driving\" then 1.0 else 0.0, vehicle_id: r.vehicle_id}))\n  |> difference(nonNegative: true)\n  |> filter(fn: (r) => r._value == 1.0)\n  |> group()\n  |> count()\n  |> map(fn: (r) => ({_value: r._value}))",
+          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -7d)\n  |> filter(fn: (r) => r._measurement == \"trip_summary\")\n  |> filter(fn: (r) => r._field == \"fuel_used\")\n  |> group()\n  |> count()\n  |> map(fn: (r) => ({_value: r._value}))",
           "refId": "A"
         }
       ],
-      "title": "Fahrten 24h",
+      "title": "Fahrten (7 Tage)",
       "type": "stat"
     },
     {
@@ -287,11 +287,11 @@
             "type": "influxdb",
             "uid": "influxdb"
           },
-          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r._measurement == \"vehicle_errors\")\n  |> filter(fn: (r) => r._field == \"active\")\n  |> filter(fn: (r) => r._value == 1)\n  |> group()\n  |> count()\n  |> map(fn: (r) => ({_value: r._value}))",
+          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -7d)\n  |> filter(fn: (r) => r._measurement == \"vehicle_errors\" or r._measurement == \"error\")\n  |> filter(fn: (r) => r._field == \"active\")\n  |> filter(fn: (r) => r._value == 1)\n  |> group()\n  |> count()\n  |> map(fn: (r) => ({_value: r._value}))",
           "refId": "A"
         }
       ],
-      "title": "Alarme 24h",
+      "title": "Fehler (7 Tage)",
       "type": "stat"
     },
     {
@@ -408,7 +408,7 @@
             "type": "influxdb",
             "uid": "influxdb"
           },
-          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -7d)\n  |> filter(fn: (r) => r._measurement == \"vehicle_errors\")\n  |> filter(fn: (r) => r._field == \"active\")\n  |> group(columns: [\"vehicle_id\", \"error_code\"])\n  |> last()\n  |> filter(fn: (r) => r._value == 1)\n  |> group()\n  |> count()\n  |> map(fn: (r) => ({_value: r._value}))",
+          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -7d)\n  |> filter(fn: (r) => r._measurement == \"vehicle_errors\" or r._measurement == \"error\")\n  |> filter(fn: (r) => r._field == \"active\")\n  |> group(columns: [\"vehicle_id\", \"error_code\"])\n  |> last()\n  |> filter(fn: (r) => r._value == 1)\n  |> group()\n  |> count()\n  |> map(fn: (r) => ({_value: r._value}))",
           "refId": "A"
         }
       ],
@@ -492,7 +492,7 @@
             "type": "influxdb",
             "uid": "influxdb"
           },
-          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r._measurement == \"vehicle_state\")\n  |> filter(fn: (r) => r._field == \"fuel_l\")\n  |> group(columns: [\"vehicle_id\"])\n  |> last()\n  |> filter(fn: (r) => r._value < 15)\n  |> group()\n  |> count()\n  |> map(fn: (r) => ({_value: r._value}))",
+          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r._measurement == \"vehicle_state\" or r._measurement == \"state\")\n  |> filter(fn: (r) => r._field == \"fuel_l\")\n  |> group(columns: [\"vehicle_id\"])\n  |> last()\n  |> filter(fn: (r) => r._value < 15)\n  |> group()\n  |> count()\n  |> map(fn: (r) => ({_value: r._value}))",
           "refId": "A"
         }
       ],
@@ -576,7 +576,7 @@
             "type": "influxdb",
             "uid": "influxdb"
           },
-          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r._measurement == \"vehicle_state\")\n  |> filter(fn: (r) => r._field == \"battery_v\")\n  |> group(columns: [\"vehicle_id\"])\n  |> last()\n  |> filter(fn: (r) => r._value < 11.8)\n  |> group()\n  |> count()\n  |> map(fn: (r) => ({_value: r._value}))",
+          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r._measurement == \"vehicle_state\" or r._measurement == \"state\")\n  |> filter(fn: (r) => r._field == \"battery_v\")\n  |> group(columns: [\"vehicle_id\"])\n  |> last()\n  |> filter(fn: (r) => r._value < 11.8)\n  |> group()\n  |> count()\n  |> map(fn: (r) => ({_value: r._value}))",
           "refId": "A"
         }
       ],
@@ -675,238 +675,15 @@
         "x": 0,
         "y": 10
       },
-      "id": 101,
+      "id": 103,
       "panels": [],
-      "title": "Kraftstoff & Batterie",
+      "title": "Heutige Termine",
       "type": "row"
     },
     {
       "datasource": {
-        "type": "influxdb",
-        "uid": "influxdb"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "Liter",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 20,
-            "gradientMode": "opacity",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "pointSize": 4,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "showValues": false,
-            "spanNulls": true,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "line"
-            }
-          },
-          "displayName": "${__field.labels.vehicle_id}",
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": 0
-              },
-              {
-                "color": "orange",
-                "value": 10
-              },
-              {
-                "color": "green",
-                "value": 20
-              }
-            ]
-          },
-          "unit": "litre"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 11
-      },
-      "id": 5,
-      "options": {
-        "legend": {
-          "calcs": [
-            "last",
-            "min",
-            "mean"
-          ],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "pluginVersion": "12.3.1",
-      "targets": [
-        {
-          "datasource": {
-            "type": "influxdb",
-            "uid": "influxdb"
-          },
-          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"vehicle_state\")\n  |> filter(fn: (r) => r._field == \"fuel_l\")\n  |> group(columns: [\"vehicle_id\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)",
-          "refId": "A"
-        }
-      ],
-      "title": "Kraftstoffstand",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "influxdb",
-        "uid": "influxdb"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "Volt",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 10,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "pointSize": 4,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "showValues": false,
-            "spanNulls": true,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "line"
-            }
-          },
-          "displayName": "${__field.labels.vehicle_id}",
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": 0
-              },
-              {
-                "color": "orange",
-                "value": 11.5
-              },
-              {
-                "color": "green",
-                "value": 12.2
-              }
-            ]
-          },
-          "unit": "volt"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 11
-      },
-      "id": 6,
-      "options": {
-        "legend": {
-          "calcs": [
-            "last",
-            "min",
-            "mean"
-          ],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "pluginVersion": "12.3.1",
-      "targets": [
-        {
-          "datasource": {
-            "type": "influxdb",
-            "uid": "influxdb"
-          },
-          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"vehicle_state\")\n  |> filter(fn: (r) => r._field == \"battery_v\")\n  |> group(columns: [\"vehicle_id\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)",
-          "refId": "A"
-        }
-      ],
-      "title": "Batteriespannung",
-      "type": "timeseries"
-    },
-    {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 19
-      },
-      "id": 102,
-      "panels": [],
-      "title": "Listen",
-      "type": "row"
-    },
-    {
-      "datasource": {
-        "type": "influxdb",
-        "uid": "influxdb"
+        "type": "mssql",
+        "uid": "cfc15eb7mht6oc"
       },
       "fieldConfig": {
         "defaults": {
@@ -924,7 +701,44 @@
             },
             "inspect": false
           },
-          "mappings": [],
+          "mappings": [
+            {
+              "options": {
+                "Geplant": {
+                  "color": "blue",
+                  "index": 0
+                }
+              },
+              "type": "value"
+            },
+            {
+              "options": {
+                "In Bearbeitung": {
+                  "color": "yellow",
+                  "index": 1
+                }
+              },
+              "type": "value"
+            },
+            {
+              "options": {
+                "Abgeschlossen": {
+                  "color": "green",
+                  "index": 2
+                }
+              },
+              "type": "value"
+            },
+            {
+              "options": {
+                "Abgesagt": {
+                  "color": "red",
+                  "index": 3
+                }
+              },
+              "type": "value"
+            }
+          ],
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -939,98 +753,36 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "vehicle_id"
+              "options": "Uhrzeit"
             },
             "properties": [
               {
-                "id": "displayName",
-                "value": "Fahrzeug"
-              },
+                "id": "custom.width",
+                "value": 80
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Fahrzeug"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 100
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Status"
+            },
+            "properties": [
               {
                 "id": "custom.width",
                 "value": 120
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "state"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Status"
-              },
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "options": {
-                      "driving": {
-                        "color": "green",
-                        "text": "Faehrt"
-                      },
-                      "idle": {
-                        "color": "yellow",
-                        "text": "Leerlauf"
-                      },
-                      "offline": {
-                        "color": "gray",
-                        "text": "Offline"
-                      },
-                      "parked": {
-                        "color": "blue",
-                        "text": "Geparkt"
-                      }
-                    },
-                    "type": "value"
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "fuel_l"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Kraftstoff"
-              },
-              {
-                "id": "unit",
-                "value": "litre"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "battery_v"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Batterie"
-              },
-              {
-                "id": "unit",
-                "value": "volt"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "_time"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Aktualisiert"
               }
             ]
           }
@@ -1038,34 +790,68 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
+        "w": 24,
         "x": 0,
-        "y": 20
+        "y": 11
       },
-      "id": 7,
+      "id": 11,
       "options": {
         "cellHeight": "sm",
-        "showHeader": true,
-        "sortBy": [
-          {
-            "desc": true,
-            "displayName": "Aktualisiert"
-          }
-        ]
+        "showHeader": true
       },
       "pluginVersion": "12.3.1",
       "targets": [
         {
+          "dataset": "GoogleCalendar_smart_car_iot",
           "datasource": {
-            "type": "influxdb",
-            "uid": "influxdb"
+            "type": "mssql",
+            "uid": "cfc15eb7mht6oc"
           },
-          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -5s)\n  |> filter(fn: (r) => r._measurement == \"vehicle_state\")\n  |> filter(fn: (r) => r._field == \"fuel_l\" or r._field == \"battery_v\")\n  |> pivot(rowKey:[\"_time\", \"vehicle_id\", \"state\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> group()\n  |> sort(columns: [\"_time\"], desc: true)\n  |> unique(column: \"vehicle_id\")\n  |> keep(columns: [\"_time\", \"vehicle_id\", \"state\", \"fuel_l\", \"battery_v\"])",
-          "refId": "A"
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT Summary, Description, StartDateTime, EndDateTime FROM [GoogleCalendar_smart_car_iot].[GoogleCalendar].[iotwssmartcar@gmail.com] WHERE CAST(StartDateTime AS DATE) = CAST(GETDATE() AS DATE) ORDER BY StartDateTime",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [
+                  {
+                    "name": "*",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          },
+          "table": "GoogleCalendar.iotwssmartcar@gmail.com"
         }
       ],
-      "title": "Fahrzeugliste",
+      "title": "Termine",
       "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 19
+      },
+      "id": 102,
+      "panels": [],
+      "title": "Listen",
+      "type": "row"
     },
     {
       "datasource": {
@@ -1242,7 +1028,7 @@
             "type": "influxdb",
             "uid": "influxdb"
           },
-          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -7d)\n  |> filter(fn: (r) => r._measurement == \"vehicle_errors\")\n  |> filter(fn: (r) => r._field == \"active\")\n  |> sort(columns: [\"_time\"], desc: true)\n  |> limit(n: 20)\n  |> map(fn: (r) => ({Zeit: r._time, Fahrzeug: r.vehicle_id, Fehler: r.error_code, Status: if r._value == 1 then \"AKTIV\" else \"Geloest\"}))",
+          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -7d)\n  |> filter(fn: (r) => r._measurement == \"vehicle_errors\" or r._measurement == \"error\")\n  |> filter(fn: (r) => r._field == \"active\")\n  |> sort(columns: [\"_time\"], desc: true)\n  |> limit(n: 20)\n  |> map(fn: (r) => ({Zeit: r._time, Fahrzeug: r.vehicle_id, Fehler: r.error_code, Status: if r._value == 1 then \"AKTIV\" else \"Geloest\"}))",
           "refId": "A"
         }
       ],
@@ -1262,124 +1048,6 @@
           }
         }
       ],
-      "type": "table"
-    },
-    {
-      "datasource": {
-        "type": "influxdb",
-        "uid": "influxdb"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "custom": {
-            "align": "auto",
-            "cellOptions": {
-              "type": "auto"
-            },
-            "filterable": false,
-            "footer": {
-              "reducers": []
-            },
-            "inspect": false
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "orange",
-                "value": 0
-              }
-            ]
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "vehicle_id"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Fahrzeug"
-              },
-              {
-                "id": "custom.width",
-                "value": 100
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "alert_type"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Typ"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "message"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Nachricht"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "_time"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Zeit"
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 6,
-        "w": 12,
-        "x": 12,
-        "y": 26
-      },
-      "id": 10,
-      "options": {
-        "cellHeight": "sm",
-        "showHeader": true,
-        "sortBy": [
-          {
-            "desc": true,
-            "displayName": "Zeit"
-          }
-        ]
-      },
-      "pluginVersion": "12.3.1",
-      "targets": [
-        {
-          "datasource": {
-            "type": "influxdb",
-            "uid": "influxdb"
-          },
-          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -7d)\n  |> filter(fn: (r) => r._measurement == \"alerts\")\n  |> pivot(rowKey:[\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> sort(columns: [\"_time\"], desc: true)\n  |> limit(n: 20)\n  |> keep(columns: [\"_time\", \"vehicle_id\", \"alert_type\", \"message\"])",
-          "refId": "A"
-        }
-      ],
-      "title": "Letzte Alarme",
       "type": "table"
     },
     {
@@ -1513,7 +1181,7 @@
             "type": "influxdb",
             "uid": "influxdb"
           },
-          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -7d)\n  |> filter(fn: (r) => r._measurement == \"trip_summary\")\n  |> pivot(rowKey:[\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> sort(columns: [\"_time\"], desc: true)\n  |> limit(n: 20)\n  |> keep(columns: [\"_time\", \"vehicle_id\", \"trip_id\", \"duration_s\", \"fuel_used\"])",
+          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -7d)\n  |> filter(fn: (r) => r._measurement == \"trip_summary\" or r._measurement == \"trip\")\n  |> pivot(rowKey:[\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> sort(columns: [\"_time\"], desc: true)\n  |> limit(n: 20)\n  |> keep(columns: [\"_time\", \"vehicle_id\", \"trip_id\", \"duration_s\", \"fuel_used\"])",
           "refId": "A"
         }
       ],
@@ -1639,179 +1307,6 @@
       ],
       "title": "Geschwindigkeitsverlauf",
       "type": "timeseries"
-    },
-    {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 43
-      },
-      "id": 103,
-      "panels": [],
-      "title": "Heutige Termine",
-      "type": "row"
-    },
-    {
-      "datasource": {
-        "type": "mssql",
-        "uid": "cfc15eb7mht6oc"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "custom": {
-            "align": "auto",
-            "cellOptions": {
-              "type": "auto"
-            },
-            "filterable": false,
-            "footer": {
-              "reducers": []
-            },
-            "inspect": false
-          },
-          "mappings": [
-            {
-              "options": {
-                "Geplant": {
-                  "color": "blue",
-                  "index": 0
-                }
-              },
-              "type": "value"
-            },
-            {
-              "options": {
-                "In Bearbeitung": {
-                  "color": "yellow",
-                  "index": 1
-                }
-              },
-              "type": "value"
-            },
-            {
-              "options": {
-                "Abgeschlossen": {
-                  "color": "green",
-                  "index": 2
-                }
-              },
-              "type": "value"
-            },
-            {
-              "options": {
-                "Abgesagt": {
-                  "color": "red",
-                  "index": 3
-                }
-              },
-              "type": "value"
-            }
-          ],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Uhrzeit"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 80
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Fahrzeug"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 100
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Status"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 120
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 44
-      },
-      "id": 11,
-      "options": {
-        "cellHeight": "sm",
-        "showHeader": true
-      },
-      "pluginVersion": "12.3.1",
-      "targets": [
-        {
-          "dataset": "GoogleCalendar_smart_car_iot",
-          "datasource": {
-            "type": "mssql",
-            "uid": "cfc15eb7mht6oc"
-          },
-          "editorMode": "code",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "SELECT Summary, Description, StartDateTime, EndDateTime FROM [GoogleCalendar_smart_car_iot].[GoogleCalendar].[iotwssmartcar@gmail.com] WHERE CAST(StartDateTime AS DATE) = CAST(GETDATE() AS DATE) ORDER BY StartDateTime",
-          "refId": "A",
-          "sql": {
-            "columns": [
-              {
-                "parameters": [
-                  {
-                    "name": "*",
-                    "type": "functionParameter"
-                  }
-                ],
-                "type": "function"
-              }
-            ],
-            "groupBy": [
-              {
-                "property": {
-                  "type": "string"
-                },
-                "type": "groupBy"
-              }
-            ],
-            "limit": 50
-          },
-          "table": "GoogleCalendar.iotwssmartcar@gmail.com"
-        }
-      ],
-      "title": "Termine",
-      "type": "table"
     }
   ],
   "preload": false,
@@ -1829,9 +1324,12 @@
     "from": "now-1h",
     "to": "now"
   },
-  "timepicker": {},
+  "timepicker": {
+    "refresh_intervals": ["5s", "10s", "30s", "1m", "5m"]
+  },
+  "refresh": "10s",
   "timezone": "browser",
   "title": "Flottenuebersicht",
   "uid": "smart-car-main",
-  "version": 28
+  "version": 31
 }

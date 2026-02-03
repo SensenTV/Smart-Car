@@ -157,7 +157,8 @@ Alle Container sollten den Status `Up` haben:
 - mosquitto
 - node-red
 - calendar-webhook
-- vehicle-sync
+- weather-service
+- trip-processor
 
 ---
 
@@ -193,13 +194,13 @@ void setup() {
     client.setServer(mqtt_server, mqtt_port);
 }
 
-void sendVehicleState(float fuel, float battery, const char* state) {
+void sendVehicleState(float fuel, float battery_v, const char* state) {
     char topic[50];
     char payload[100];
     
     snprintf(topic, sizeof(topic), "smartcar/%s", vehicle_id);
     snprintf(payload, sizeof(payload), "state,%s,%.1f,%.2f,%s",
-             vehicle_id, fuel, battery, state);
+             vehicle_id, fuel, battery_v, state);
     
     client.publish(topic, payload);
 }
@@ -242,10 +243,10 @@ void setup() {
     LoRa.setSignalBandwidth(125E3);
 }
 
-void sendLoRaData(float fuel, float battery, const char* state) {
+void sendLoRaData(float fuel, float battery_v, const char* state) {
     char payload[100];
     snprintf(payload, sizeof(payload), "%s,state,%.1f,%.2f,%s",
-             vehicle_id, fuel, battery, state);
+             vehicle_id, fuel, battery_v, state);
     
     LoRa.beginPacket();
     LoRa.print(payload);
@@ -268,6 +269,11 @@ Alle Daten werden als CSV ueber MQTT gesendet auf Topic `smartcar/{vehicle_id}`:
 ```
 state,{vehicle_id},{state},{fuel_l},{battery_v}
 ```
+Bereiche:
+- `state`: parked, idle, driving
+- `fuel_l`: Kraftstoff in Litern (0-100)
+- `battery_v`: Batteriespannung in Volt (11-15)
+
 Beispiel: `state,CAR001,driving,45.5,12.8`
 
 ### Fahrt-Zusammenfassung
@@ -311,7 +317,8 @@ Beispiel: `alert,CAR001,fuel_low,Kraftstoff_unter_10L`
 | Service | Port | Beschreibung |
 |---------|------|--------------|
 | **Calendar Webhook** | 5000 | Google Calendar Integration |
-| **Vehicle Sync** | - | Fahrzeugdaten-Synchronisation |
+| **Weather Service** | 5001 | Wetterdaten fuer Fahrzeugstandorte |
+| **Trip Processor** | - | Fahrt-Verarbeitung und Statistiken |
 
 ### API-Endpunkte
 
@@ -443,6 +450,27 @@ docker exec -it influxdb influx query 'from(bucket:"vehicle_data") |> range(star
 
 ---
 
+## Demo-Modus (fuer Praesentationen)
+
+Das System enthaelt einen integrierten **TEST001-Simulator** in Node-RED:
+
+1. **Node-RED oeffnen:** http://localhost:1880
+2. **TEST001-Simulator Tab** auswaehlen
+3. **Timestamp-Node doppelklicken** und Interval einstellen (z.B. 2s)
+4. **Deploy** klicken
+
+Der Simulator generiert automatisch:
+- Fahrzeugstatus (parked/idle/driving Wechsel)
+- Kraftstoffverbrauch waehrend Fahrten
+- Trip-Zusammenfassungen bei Fahrtende
+- Fehler-Events (zufaellig)
+
+**Grafana Dashboard** zeigt die Daten in Echtzeit unter:
+- Hauptdashboard: http://localhost:3001/d/main-dashboard
+- Fahrzeugdetail: http://localhost:3001/d/vehicle-detail
+
+---
+
 ## Team
 
 | Name | Rolle | GitHub |
@@ -469,4 +497,4 @@ Dieses Projekt ist unter der MIT-Lizenz lizenziert.
 
 ---
 
-*Projekt erstellt im Rahmen des IoT-Kurses WS25/26*
+*Projekt erstellt im Rahmen des IoT-Kurses WS24/25 - Hochschule Bremerhaven*

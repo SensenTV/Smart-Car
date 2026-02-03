@@ -1,56 +1,30 @@
 {
   "vehicles": [
     {
-      "vehicle_id": "VW-PB5-001",
+      "vehicle_id": "VW-Passat-B5-001",
       "display_name": "Passat B5 - Silber",
       "manufacturer": "Volkswagen",
-      "model": "Passat B5 1.9 TDI",
-      "year": 2003,
-      "license_plate": "SB-SC-001",
+      "model": "Passat B5 1.6",
+      "year": 1997,
+      "license_plate": "SB-P-3301",
       "vin": "WVWZZZ3BZ3E123456",
       "fuel_capacity_l": 62,
-      "fuel_type": "Diesel",
+      "fuel_type": "Benzin",
       "color": "Silber",
       "notes": "Dienstwagen 1"
     },
     {
-      "vehicle_id": "VW-PB5-002",
-      "display_name": "Passat B5 - Blau",
-      "manufacturer": "Volkswagen",
-      "model": "Passat B5 1.8T",
-      "year": 2004,
-      "license_plate": "SB-SC-002",
-      "vin": "WVWZZZ3BZ4E789012",
-      "fuel_capacity_l": 62,
-      "fuel_type": "Benzin",
-      "color": "Dunkelblau",
-      "notes": "Dienstwagen 2"
-    },
-    {
       "vehicle_id": "TEST001",
-      "display_name": "Golf VII GTI",
+      "display_name": "Test Auto",
       "manufacturer": "Volkswagen",
-      "model": "Golf VII GTI",
+      "model": "Testmodell",
       "year": 2019,
-      "license_plate": "HH-GT-7777",
+      "license_plate": "SB-SB-7777",
       "vin": "WVWZZZ1KZAW654321",
       "fuel_capacity_l": 50,
       "fuel_type": "Benzin",
       "color": "Tornadorot",
       "notes": "Testfahrzeug fuer Demos"
-    },
-    {
-      "vehicle_id": "Ford_Focus",
-      "display_name": "Ford Focus ST",
-      "manufacturer": "Ford",
-      "model": "Focus ST 2.0 EcoBoost",
-      "year": 2018,
-      "license_plate": "SB-FO-2018",
-      "vin": "WF0XXXGCDXJY12345",
-      "fuel_capacity_l": 55,
-      "fuel_type": "Benzin",
-      "color": "Race Red",
-      "notes": "Poolfahrzeug"
     }
   ]
 }

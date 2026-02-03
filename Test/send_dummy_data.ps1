@@ -141,6 +141,6 @@ if ($Continuous) {
 }
 
 Write-Host ""
-Write-Host "Fertig! Pruefe die Daten in:" -ForegroundColor Green
+Write-Host "Fertig! Pruefen der Daten in:" -ForegroundColor Green
 Write-Host "   - Node-RED: http://localhost:1880" -ForegroundColor Gray
 Write-Host "   - Grafana:  http://localhost:3001" -ForegroundColor Gray

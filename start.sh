@@ -10,15 +10,15 @@ echo ""
 # Prüfe ob Docker läuft
 echo "[1/4] Überprüfe Docker..."
 if ! docker ps > /dev/null 2>&1; then
-    echo "✗ Docker läuft nicht!"
+    echo "Docker läuft nicht!"
     exit 1
 fi
-echo "✓ Docker läuft"
+echo "Docker läuft"
 
 # Stoppe alte Container
 echo "[2/4] Stoppe alte Container..."
 docker-compose down > /dev/null 2>&1
-echo "✓ Alte Container gestoppt"
+echo "Alte Container gestoppt"
 
 # Starte neue Container mit minimaler Ausgabe
 echo "[3/4] Starte neue Container..."
@@ -34,7 +34,7 @@ while [ $healthy -lt 2 ] && [ $elapsed -lt $max_wait ]; do
     healthy=$(docker-compose ps --services --filter "status=running" 2>&1 | grep -E "mosquitto|influxdb" | wc -l)
     
     if [ $healthy -lt 2 ]; then
-        printf "  ⏳ Warte auf Services (${elapsed}s)...\r"
+        printf "Warte auf Services (${elapsed}s)...\r"
         sleep 2
         elapsed=$((elapsed + 2))
     fi
