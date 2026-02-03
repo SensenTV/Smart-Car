@@ -1,2 +1,0 @@
-vehicle_info,vehicle_id=TEST001 display_name="Test-Fahrzeug-1",license_plate="TEST-001",model="Test-Model",color="rot",vin="TEST00000001"
-vehicle_info,vehicle_id=Ford_Focus display_name="Ford-Focus",license_plate="PB-FF-001",model="Ford-Focus",color="schwarz",vin="WF0XXXGCDX1Y00001"
