@@ -1041,7 +1041,7 @@
             "type": "influxdb",
             "uid": "influxdb"
           },
-          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -7d)\n  |> filter(fn: (r) => r._measurement == \"vehicle_errors\" or r._measurement == \"error\")\n  |> filter(fn: (r) => r._field == \"active\")\n  |> sort(columns: [\"_time\"], desc: true)\n  |> limit(n: 20)\n  |> map(fn: (r) => ({Zeit: r._time, Fahrzeug: r.vehicle_id, Fehler: r.error_code, Status: if r._value == 1 then \"AKTIV\" else \"Geloest\"}))",
+          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -7d)\n  |> filter(fn: (r) => r._measurement == \"vehicle_errors\")\n  |> filter(fn: (r) => r._field == \"active\")\n  |> group()\n  |> sort(columns: [\"_time\"], desc: true)\n  |> limit(n: 20)\n  |> keep(columns: [\"_time\", \"_value\", \"vehicle_id\", \"error_code\"])",
           "refId": "A"
         }
       ],
@@ -1052,12 +1052,17 @@
           "options": {
             "excludeByName": {},
             "indexByName": {
-              "Fahrzeug": 1,
-              "Fehler": 2,
-              "Status": 3,
-              "Zeit": 0
+              "_time": 0,
+              "vehicle_id": 1,
+              "error_code": 2,
+              "_value": 3
             },
-            "renameByName": {}
+            "renameByName": {
+              "_time": "Zeit",
+              "vehicle_id": "Fahrzeug",
+              "error_code": "Fehlercode",
+              "_value": "Status (1=Aktiv)"
+            }
           }
         }
       ],
@@ -1201,132 +1206,12 @@
             "type": "influxdb",
             "uid": "influxdb"
           },
-          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -7d)\n  |> filter(fn: (r) => r._measurement == \"trip_summary\" or r._measurement == \"trip\")\n  |> pivot(rowKey:[\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> sort(columns: [\"_time\"], desc: true)\n  |> limit(n: 20)\n  |> keep(columns: [\"_time\", \"vehicle_id\", \"trip_id\", \"duration_s\", \"fuel_used\"])",
+          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: -7d)\n  |> filter(fn: (r) => r._measurement == \"trip_summary\" or r._measurement == \"trip\")\n  |> pivot(rowKey:[\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> group()\n  |> sort(columns: [\"_time\"], desc: true)\n  |> limit(n: 20)\n  |> keep(columns: [\"_time\", \"vehicle_id\", \"trip_id\", \"duration_s\", \"fuel_used\"])",
           "refId": "A"
         }
       ],
       "title": "Letzte Fahrten",
       "type": "table"
-    },
-    {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 34
-      },
-      "id": 104,
-      "panels": [],
-      "title": "Fahranalyse",
-      "type": "row"
-    },
-    {
-      "datasource": {
-        "type": "influxdb",
-        "uid": "influxdb"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "km/h",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 15,
-            "gradientMode": "opacity",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "pointSize": 3,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "showValues": false,
-            "spanNulls": true,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "displayName": "${__field.labels.vehicle_id}",
-          "mappings": [],
-          "max": 200,
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "yellow",
-                "value": 100
-              },
-              {
-                "color": "red",
-                "value": 130
-              }
-            ]
-          },
-          "unit": "velocitykmh"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 35
-      },
-      "id": 20,
-      "options": {
-        "legend": {
-          "calcs": [
-            "max",
-            "mean",
-            "lastNotNull"
-          ],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "pluginVersion": "12.3.1",
-      "targets": [
-        {
-          "datasource": {
-            "type": "influxdb",
-            "uid": "influxdb"
-          },
-          "query": "from(bucket: \"vehicle_data\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"vehicle_gps\")\n  |> filter(fn: (r) => r._field == \"speed_kmh\")\n  |> group(columns: [\"vehicle_id\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)",
-          "refId": "A"
-        }
-      ],
-      "title": "Geschwindigkeitsverlauf",
-      "type": "timeseries"
     }
   ],
   "preload": false,

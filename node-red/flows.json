@@ -21,13 +21,6 @@
         "info": "Automatische Benachrichtigungen und Outlook-Kalender Integration"
     },
     {
-        "id": "flow_tires",
-        "type": "tab",
-        "label": "Reifen-Management",
-        "disabled": false,
-        "info": "Reifenwechsel-Empfehlungen nach O-bis-O Regel"
-    },
-    {
         "id": "config_mqtt_internal",
         "type": "mqtt-broker",
         "name": "MQTT Broker (Mosquitto)",
@@ -115,6 +108,7 @@
                 "debug_line"
             ],
             [
+                "func_error_to_influx",
                 "debug_error"
             ]
         ],
@@ -150,6 +144,21 @@
         "x": 600,
         "y": 220,
         "wires": []
+    },
+    {
+        "id": "func_error_to_influx",
+        "type": "function",
+        "z": "flow_main",
+        "name": "Parse-Fehler -> Influx",
+        "func": "const topicParts = msg.topic ? msg.topic.split('/') : [];\nconst vehicle_id = (msg._parsed && msg._parsed.vehicle_id) || (topicParts[1] || 'UNKNOWN');\nconst cols = msg.payload ? msg.payload.toString().trim().split(',') : [];\nconst csv_vehicle_id = (cols.length > 1 && cols[1]) ? cols[1] : '';\nconst error_vehicle_id = csv_vehicle_id ? csv_vehicle_id.replace(/[^a-zA-Z0-9_-]/g, '') : vehicle_id;\nconst error_code = 'NODE_RED_PARSE';\nconst ts = Date.now() * 1000000;\nconst error_message = msg.error || msg.payload || 'Parse-Fehler';\nmsg.payload = `vehicle_errors,vehicle_id=${error_vehicle_id},error_code=${error_code} active=1i ${ts}`;\nmsg.headers = {\n    'Authorization': 'Token vehicle-admin-token',\n    'Content-Type': 'text/plain; charset=utf-8'\n};\nmsg._parsed = { type: 'node_red_error', vehicle_id: error_vehicle_id, timestamp: ts, error: error_message };\nreturn msg;",
+        "outputs": 1,
+        "x": 620,
+        "y": 260,
+        "wires": [
+            [
+                "http_influx"
+            ]
+        ]
     },
     {
         "id": "http_influx",
@@ -1579,297 +1588,5 @@
                 "func_alert_parser"
             ]
         ]
-    },
-    {
-        "id": "comment_tires_header",
-        "type": "comment",
-        "z": "flow_tires",
-        "name": "=== REIFEN-MANAGEMENT (O-bis-O) ===",
-        "info": "Prueft taeglich um 8:00:\n- Temperatur & Wetter\n- O-bis-O Regel (Okt-Ostern=Winter)\n- Erstellt Kalender-Events fuer Reifenwechsel",
-        "x": 220,
-        "y": 40,
-        "wires": []
-    },
-    {
-        "id": "inject_tire_check_daily",
-        "type": "inject",
-        "z": "flow_tires",
-        "name": "Taeglich 8:00",
-        "props": [
-            {
-                "p": "payload"
-            }
-        ],
-        "repeat": "",
-        "crontab": "0 8 * * *",
-        "once": false,
-        "onceDelay": 0.1,
-        "topic": "",
-        "payload": "check",
-        "payloadType": "str",
-        "x": 130,
-        "y": 120,
-        "wires": [
-            [
-                "http_tire_check"
-            ]
-        ]
-    },
-    {
-        "id": "inject_tire_manual",
-        "type": "inject",
-        "z": "flow_tires",
-        "name": "Manuell pruefen",
-        "props": [
-            {
-                "p": "payload"
-            }
-        ],
-        "repeat": "",
-        "crontab": "",
-        "once": false,
-        "onceDelay": 0.1,
-        "topic": "",
-        "payload": "check",
-        "payloadType": "str",
-        "x": 140,
-        "y": 180,
-        "wires": [
-            [
-                "http_tire_check"
-            ]
-        ]
-    },
-    {
-        "id": "http_tire_check",
-        "type": "http request",
-        "z": "flow_tires",
-        "name": "Tire Service API",
-        "method": "GET",
-        "ret": "obj",
-        "paytoqs": "ignore",
-        "url": "http://tire-service:5003/tires/check",
-        "tls": "",
-        "persist": false,
-        "proxy": "",
-        "insecureHTTPParser": false,
-        "authType": "",
-        "senderr": true,
-        "headers": [],
-        "x": 350,
-        "y": 150,
-        "wires": [
-            [
-                "func_process_tire_result",
-                "debug_tire_api"
-            ]
-        ]
-    },
-    {
-        "id": "debug_tire_api",
-        "type": "debug",
-        "z": "flow_tires",
-        "name": "API Response",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "payload",
-        "x": 550,
-        "y": 210,
-        "wires": []
-    },
-    {
-        "id": "func_process_tire_result",
-        "type": "function",
-        "z": "flow_tires",
-        "name": "Ergebnis verarbeiten",
-        "func": "// Tire Service Response verarbeiten\nconst result = msg.payload;\n\nif (!result || !result.vehicles) {\n    node.status({fill:'red', shape:'ring', text: 'Fehler'});\n    return null;\n}\n\nconst alerts = [];\nconst recommendation = result.recommendation;\n\n// Pruefe jedes Fahrzeug\nfor (const vehicle of result.vehicles) {\n    const statusValue = vehicle.status_value || 0;\n    const currentTires = vehicle.current_tires;\n    const recommended = recommendation.recommended;\n    \n    // Status-Werte:\n    // 3 = WECHSEL DRINGEND (Schnee/Eis)\n    // 2 = WECHSEL EMPFOHLEN (Saison/Temp)\n    // 1 = Ganzjahresreifen OK\n    // 0 = Passend\n    \n    if (statusValue >= 2) {\n        const priority = statusValue === 3 ? 'critical' : 'medium';\n        const deadlineHours = statusValue === 3 ? 2 : 72;\n        \n        const tireEmoji = recommended === 'winter' ? '❄️' : '☀️';\n        const tireType = recommended === 'winter' ? 'Winterreifen' : 'Sommerreifen';\n        \n        alerts.push({\n            type: 'tire_change',\n            priority: priority,\n            deadline_hours: deadlineHours,\n            title: tireEmoji + ' Reifenwechsel: ' + tireType,\n            message: vehicle.display_name + ' hat aktuell ' + \n                    (currentTires === 'winter' ? 'Winterreifen' : 'Sommerreifen') + \n                    ' montiert.\\n\\nEmpfehlung: ' + tireType + \n                    '\\nGrund: ' + recommendation.label +\n                    '\\n\\nTemperatur: ' + recommendation.temperature.toFixed(1) + '°C' +\n                    (recommendation.is_winter_season ? '\\nO-bis-O: Wintersaison' : '\\nO-bis-O: Sommersaison'),\n            vehicle_id: vehicle.vehicle_id,\n            value: statusValue,\n            duration_minutes: 120\n        });\n    }\n}\n\nif (alerts.length === 0) {\n    node.status({fill:'green', shape:'dot', text: 'Alle Reifen OK'});\n    return null;\n}\n\nnode.status({fill:'orange', shape:'dot', text: alerts.length + ' Fahrzeug(e) Wechsel noetig'});\nnode.warn('Reifenwechsel empfohlen fuer ' + alerts.length + ' Fahrzeug(e)');\n\nreturn alerts.map(a => ({payload: a}));",
-        "outputs": 1,
-        "x": 580,
-        "y": 150,
-        "wires": [
-            [
-                "func_tire_calendar",
-                "mqtt_out_tire_alert"
-            ]
-        ]
-    },
-    {
-        "id": "mqtt_out_tire_alert",
-        "type": "mqtt out",
-        "z": "flow_tires",
-        "name": "MQTT Tire Alert",
-        "topic": "smartcar/alerts/tires",
-        "qos": "1",
-        "retain": "false",
-        "respTopic": "",
-        "contentType": "",
-        "userProps": "",
-        "correl": "",
-        "expiry": "",
-        "broker": "config_mqtt_internal",
-        "x": 830,
-        "y": 210,
-        "wires": []
-    },
-    {
-        "id": "func_tire_calendar",
-        "type": "function",
-        "z": "flow_tires",
-        "name": "Kalender-Event erstellen",
-        "func": "// Kalender-Event fuer Reifenwechsel\nconst alert = msg.payload;\n\nconst prioColors = {\n    critical: '11',\n    high: '6',\n    medium: '5',\n    low: '9'\n};\n\nconst deadlineHours = alert.deadline_hours || 72;\n\n// Startzeit: Samstag Vormittag wenn moeglich\nconst startTime = new Date();\nstartTime.setHours(startTime.getHours() + deadlineHours);\n\n// Runde auf naechste Stunde\nstartTime.setMinutes(0, 0, 0);\n\n// Wenn unter der Woche, verschiebe auf Samstag 10:00\nconst dayOfWeek = startTime.getDay();\nif (dayOfWeek !== 0 && dayOfWeek !== 6 && alert.priority !== 'critical') {\n    // Tage bis Samstag\n    const daysUntilSat = (6 - dayOfWeek + 7) % 7 || 7;\n    startTime.setDate(startTime.getDate() + daysUntilSat);\n    startTime.setHours(10, 0, 0, 0);\n}\n\nconst endTime = new Date(startTime);\nendTime.setMinutes(endTime.getMinutes() + (alert.duration_minutes || 120));\n\nconst prioLabel = alert.priority === 'critical' ? '[DRINGEND] ' : '';\n\nmsg.payload = {\n    summary: prioLabel + alert.title,\n    description: alert.message + '\\n\\n---\\nAutomatisch erstellt von Smart-Car',\n    start: {\n        dateTime: startTime.toISOString(),\n        timeZone: 'Europe/Berlin'\n    },\n    end: {\n        dateTime: endTime.toISOString(),\n        timeZone: 'Europe/Berlin'\n    },\n    colorId: prioColors[alert.priority] || '5',\n    reminders: {\n        useDefault: false,\n        overrides: [\n            { method: 'popup', minutes: 1440 },\n            { method: 'email', minutes: 2880 }\n        ]\n    }\n};\n\nnode.status({fill:'blue', shape:'dot', text: 'Event: ' + alert.title.substring(0, 20)});\nreturn msg;",
-        "outputs": 1,
-        "x": 850,
-        "y": 150,
-        "wires": [
-            [
-                "http_calendar_tire"
-            ]
-        ]
-    },
-    {
-        "id": "http_calendar_tire",
-        "type": "http request",
-        "z": "flow_tires",
-        "name": "Calendar API",
-        "method": "POST",
-        "ret": "obj",
-        "paytoqs": "ignore",
-        "url": "http://calendar-webhook:5000/event",
-        "tls": "",
-        "persist": false,
-        "proxy": "",
-        "insecureHTTPParser": false,
-        "authType": "",
-        "senderr": true,
-        "headers": [],
-        "x": 1070,
-        "y": 150,
-        "wires": [
-            [
-                "func_calendar_tire_response"
-            ]
-        ]
-    },
-    {
-        "id": "func_calendar_tire_response",
-        "type": "function",
-        "z": "flow_tires",
-        "name": "Response",
-        "func": "if (msg.statusCode === 200 || msg.statusCode === 201) {\n    node.status({fill:'green', shape:'dot', text: 'Termin erstellt'});\n    node.warn('Reifenwechsel-Termin erstellt');\n} else {\n    node.status({fill:'yellow', shape:'ring', text: 'Fehler: ' + msg.statusCode});\n    node.warn('Kalender-Fehler: ' + JSON.stringify(msg.payload));\n}\nreturn msg;",
-        "outputs": 1,
-        "x": 1240,
-        "y": 150,
-        "wires": [
-            []
-        ]
-    },
-    {
-        "id": "comment_tire_status",
-        "type": "comment",
-        "z": "flow_tires",
-        "name": "=== AKTUELLER STATUS ===",
-        "info": "Zeigt aktuellen Reifenstatus aller Fahrzeuge",
-        "x": 180,
-        "y": 280,
-        "wires": []
-    },
-    {
-        "id": "inject_tire_status",
-        "type": "inject",
-        "z": "flow_tires",
-        "name": "Status abrufen",
-        "props": [
-            {
-                "p": "payload"
-            }
-        ],
-        "repeat": "",
-        "crontab": "",
-        "once": false,
-        "onceDelay": 0.1,
-        "topic": "",
-        "payload": "status",
-        "payloadType": "str",
-        "x": 130,
-        "y": 340,
-        "wires": [
-            [
-                "http_tire_status"
-            ]
-        ]
-    },
-    {
-        "id": "http_tire_status",
-        "type": "http request",
-        "z": "flow_tires",
-        "name": "Tire Status API",
-        "method": "GET",
-        "ret": "obj",
-        "paytoqs": "ignore",
-        "url": "http://tire-service:5003/tires/status",
-        "tls": "",
-        "persist": false,
-        "proxy": "",
-        "insecureHTTPParser": false,
-        "authType": "",
-        "senderr": true,
-        "headers": [],
-        "x": 340,
-        "y": 340,
-        "wires": [
-            [
-                "func_display_tire_status",
-                "debug_tire_status"
-            ]
-        ]
-    },
-    {
-        "id": "debug_tire_status",
-        "type": "debug",
-        "z": "flow_tires",
-        "name": "Status Response",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "payload",
-        "x": 550,
-        "y": 400,
-        "wires": []
-    },
-    {
-        "id": "func_display_tire_status",
-        "type": "function",
-        "z": "flow_tires",
-        "name": "Status anzeigen",
-        "func": "const result = msg.payload;\n\nif (!result || !result.vehicles) {\n    node.status({fill:'red', shape:'ring', text: 'Fehler'});\n    return null;\n}\n\nlet statusText = '';\nfor (const v of result.vehicles) {\n    const emoji = v.current_tires === 'winter' ? '❄️' : '☀️';\n    statusText += emoji + ' ' + v.display_name + ' ';\n}\n\nnode.status({fill:'blue', shape:'dot', text: statusText});\n\n// Fuer Dashboard\nmsg.payload = {\n    vehicles: result.vehicles,\n    recommendation: result.recommendation,\n    timestamp: new Date().toISOString()\n};\n\nreturn msg;",
-        "outputs": 1,
-        "x": 560,
-        "y": 340,
-        "wires": [
-            [
-                "mqtt_out_tire_status"
-            ]
-        ]
-    },
-    {
-        "id": "mqtt_out_tire_status",
-        "type": "mqtt out",
-        "z": "flow_tires",
-        "name": "MQTT Status",
-        "topic": "smartcar/tires/status",
-        "qos": "1",
-        "retain": "true",
-        "respTopic": "",
-        "contentType": "",
-        "userProps": "",
-        "correl": "",
-        "expiry": "",
-        "broker": "config_mqtt_internal",
-        "x": 770,
-        "y": 340,
-        "wires": []
     }
 ]
