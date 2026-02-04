@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
-  "id": 1,
+  "id": 2,
   "links": [
     {
       "asDropdown": false,
@@ -815,7 +815,7 @@
       "pluginVersion": "12.3.1",
       "targets": [
         {
-          "dataset": "GoogleCalendar_smart_car_iot",
+          "dataset": "GoogleCalendarSmartCar",
           "datasource": {
             "type": "mssql",
             "uid": "cfc15eb7mht6oc"
@@ -823,7 +823,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT Summary, Description, StartDateTime, EndDateTime FROM [GoogleCalendar_smart_car_iot].[GoogleCalendar].[iotwssmartcar@gmail.com] WHERE CAST(StartDateTime AS DATE) = CAST(GETDATE() AS DATE) ORDER BY StartDateTime",
+          "rawSql": "SELECT Summary, Description, StartDateTime, EndDateTime FROM [GoogleCalendarSmartCar].[GoogleCalendar].[AllCalendars] WHERE CAST(StartDateTime AS DATE) = CAST(GETDATE() AS DATE) ORDER BY StartDateTime",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1053,15 +1053,15 @@
             "excludeByName": {},
             "indexByName": {
               "_time": 0,
-              "vehicle_id": 1,
+              "_value": 3,
               "error_code": 2,
-              "_value": 3
+              "vehicle_id": 1
             },
             "renameByName": {
               "_time": "Zeit",
-              "vehicle_id": "Fahrzeug",
+              "_value": "Status (1=Aktiv)",
               "error_code": "Fehlercode",
-              "_value": "Status (1=Aktiv)"
+              "vehicle_id": "Fahrzeug"
             }
           }
         }
@@ -1215,7 +1215,7 @@
     }
   ],
   "preload": false,
-  "refresh": "5s",
+  "refresh": "10s",
   "schemaVersion": 42,
   "tags": [
     "smart-car",
@@ -1230,11 +1230,16 @@
     "to": "now"
   },
   "timepicker": {
-    "refresh_intervals": ["5s", "10s", "30s", "1m", "5m"]
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m"
+    ]
   },
-  "refresh": "10s",
   "timezone": "browser",
   "title": "Flottenuebersicht",
   "uid": "smart-car-main",
-  "version": 31
+  "version": 13
 }
