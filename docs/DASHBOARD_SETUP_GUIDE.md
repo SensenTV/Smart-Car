@@ -4,8 +4,8 @@
 Dieses Dashboard unterstützt die Integration von Google Calendar zur Anzeige des täglichen Arbeitsplans.
 
 ### Schritt 1: Google Cloud Project Setup
-
-1. Gehe zu https://console.cloud.google.com/
+ https://console.cloud.google.com/
+1. Gehe zu
 2. Erstelle ein neues Projekt: "Smart-Car"
 3. Aktiviere die **Google Sheets API** und **Google Calendar API**
 4. Gehe zu "Service Accounts" → Erstelle einen neuen Service Account
